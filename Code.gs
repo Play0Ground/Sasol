@@ -27,7 +27,7 @@ function todayParts_() {
   const mm = Utilities.formatDate(now, TZ, 'MM');
   const numeric = dd + '/' + mm + '/' + y;
   const words = d + ' ' + MONTHS[m - 1] + ' ' + y;
-  return { numeric: numeric, words: words, display: numeric + ' (' + words + ')' };
+  return { numeric: numeric, words: words, display: words };
 }
 
 function norm_(s) {
@@ -177,7 +177,7 @@ function formatDateCell_(value) {
     const y = Utilities.formatDate(value, TZ, 'yyyy');
     const d = Number(Utilities.formatDate(value, TZ, 'd'));
     const m = Number(Utilities.formatDate(value, TZ, 'M'));
-    return dd + '/' + mm + '/' + y + ' (' + d + ' ' + MONTHS[m - 1] + ' ' + y + ')';
+    return d + ' ' + MONTHS[m - 1] + ' ' + y;
   }
   return String(value || '').trim();
 }
