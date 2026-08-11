@@ -416,6 +416,7 @@
           <input type="text" id="findInput" placeholder="1029" inputmode="numeric" maxlength="4" style="letter-spacing:.18em;font-weight:700;text-align:center;">
           <button type="button" class="btn btn-primary" id="findBtn">Find</button>
         </div>
+        <div class="hint" style="margin-top:10px;">Shows your details only. Moderators assign respirator size after sign-in.</div>
         <div id="findResults"></div>
       </div>
     </section>
@@ -446,15 +447,11 @@
             <div class="panel">
               <div class="sec-label">Session Details</div>
               <div class="field">
-                <label>Date — DD/MM/YYYY</label>
-                <input type="text" id="cfgDate" placeholder="e.g. 11/08/2026" autocomplete="off">
-                <div class="hint" id="cfgDateHint">Goes into the sheet Date column. Auto today, or type it.</div>
-              </div>
-              <div class="field">
-                <label>Month in words</label>
+                <label>Date of Training (sheet format)</label>
                 <input type="text" id="cfgDateWords" placeholder="e.g. 11 August 2026" autocomplete="off">
-                <div class="hint">Shown on the app banner only — not mixed into the sheet date cell.</div>
+                <div class="hint" id="cfgDateHint">Written into the sheet as: 11 August 2026</div>
               </div>
+              <input type="hidden" id="cfgDate" value="">
               <div class="date-actions">
                 <button type="button" class="btn btn-ghost btn-small" id="useTodayBtn">Use today</button>
                 <button type="button" class="btn btn-ghost btn-small" id="applyDateBlankBtn">Fill blank dates</button>
@@ -492,9 +489,9 @@
               <div class="stat"><div class="num" id="statPending">0</div><div class="lbl">No Size</div></div>
               <div class="stat"><div class="num" id="statSized">0</div><div class="lbl">Sized</div></div>
             </div>
-            <label>Search (name or last 4)</label>
+            <label>Quick find (name or last 4) — then assign size</label>
             <div class="search-row" style="margin-bottom:12px;">
-              <input type="text" id="modSearch" placeholder="Malepe or 1029">
+              <input type="text" id="modSearch" placeholder="Malepe or 1066" autocomplete="off">
             </div>
             <div class="filter-chips">
               <button type="button" class="filt on" data-filt="all">All</button>
@@ -525,8 +522,12 @@ let sessionConfig = { date: "", dateWords: "", location: "Sasol Club", facilitat
 let todayNumeric = "";
 let todayWords = "";
 let cachedRecords = [];
+let rosterCache = []; // fast local Find Me (no Apps Script search round-trip)
+let rosterLoadedAt = 0;
 let modFilter = "all";
+let rosterPromise = null;
 const SESSION_KEY = "sasol_session_v1";
+const ROSTER_TTL_MS = 60 * 1000;
 
 function pad2(n){ return String(n).padStart(2,"0"); }
 
@@ -550,13 +551,32 @@ function wordsFromNumeric(numeric){
   return `${d} ${MONTHS[mo - 1]} ${y}`;
 }
 
-/** Sheet date column = DD/MM/YYYY only (strip " (11 August 2026)" if present) */
-function toNumericDate(value){
+/** Sheet date = "11 August 2026" */
+function toSheetDate(value){
   const s = String(value || "").trim();
   if (!s) return "";
-  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (!m) return s;
-  return `${pad2(Number(m[1]))}/${pad2(Number(m[2]))}/${m[3]}`;
+  // Already words: 11 August 2026
+  const words = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (words) {
+    const mo = MONTHS.findIndex(m => m.toLowerCase() === words[2].toLowerCase());
+    if (mo >= 0) return `${Number(words[1])} ${MONTHS[mo]} ${words[3]}`;
+  }
+  // From DD/MM/YYYY or combined "11/08/2026 (11 August 2026)"
+  const num = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (num) {
+    const d = Number(num[1]);
+    const mo = Number(num[2]);
+    const y = num[3];
+    if (mo >= 1 && mo <= 12) return `${d} ${MONTHS[mo - 1]} ${y}`;
+  }
+  // Extract trailing words in parentheses
+  const paren = s.match(/\(([^)]+)\)\s*$/);
+  if (paren) return toSheetDate(paren[1]);
+  return s;
+}
+
+function sessionSheetDate(){
+  return toSheetDate(sessionConfig.dateWords || sessionConfig.date || todayWords) || todayWords;
 }
 
 function loadLocalSession(){
@@ -577,12 +597,13 @@ function saveLocalSession(){
 }
 
 function syncDateUI(){
-  document.getElementById("dateWords").textContent = sessionConfig.dateWords || "—";
-  document.getElementById("dateNumeric").textContent = sessionConfig.date || "—";
-  document.getElementById("cfgDate").value = sessionConfig.date || "";
-  document.getElementById("cfgDateWords").value = sessionConfig.dateWords || "";
+  const sheetDate = sessionSheetDate();
+  document.getElementById("dateWords").textContent = sheetDate || "—";
+  document.getElementById("dateNumeric").textContent = todayNumeric;
+  document.getElementById("cfgDate").value = todayNumeric;
+  document.getElementById("cfgDateWords").value = sheetDate || "";
   document.getElementById("cfgDateHint").textContent =
-    `Today is ${todayNumeric}. Month in words: ${todayWords}.`;
+    `Sheet date format: ${sheetDate || todayWords}`;
 }
 
 function applyTodayDate(){
@@ -594,11 +615,10 @@ function applyTodayDate(){
 }
 
 function readDateFromInputs(){
-  const numeric = document.getElementById("cfgDate").value.trim();
   let words = document.getElementById("cfgDateWords").value.trim();
-  if (numeric && !words) words = wordsFromNumeric(numeric);
-  sessionConfig.date = numeric || todayNumeric;
-  sessionConfig.dateWords = words || todayWords;
+  words = toSheetDate(words) || todayWords;
+  sessionConfig.dateWords = words;
+  sessionConfig.date = todayNumeric;
   syncDateUI();
 }
 
@@ -648,6 +668,29 @@ async function apiCall(params){
   }
 }
 
+/** One list fetch, reused for Find Me + moderator (fast local search) */
+async function ensureRoster(force){
+  const fresh = Date.now() - rosterLoadedAt < ROSTER_TTL_MS;
+  if (!force && rosterCache.length && fresh) return rosterCache;
+  if (rosterPromise) return rosterPromise;
+  rosterPromise = (async () => {
+    try {
+      const r = await apiCall({ action: "list" });
+      rosterCache = r.success ? (r.data || []) : [];
+      rosterLoadedAt = Date.now();
+      return rosterCache;
+    } finally {
+      rosterPromise = null;
+    }
+  })();
+  return rosterPromise;
+}
+
+function findByLast4(digits, list){
+  const q = String(digits || "").trim();
+  return (list || []).filter(r => String(r.employeeNumber || "").slice(-4) === q);
+}
+
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -684,8 +727,8 @@ async function loadSessionConfig(){
       sessionConfig.location = r.data.location || sessionConfig.location || "Sasol Club";
       sessionConfig.facilitator = r.data.facilitator || sessionConfig.facilitator || "";
       // Only fall back to server today if moderator never typed a date
-      if (!local || !local.date) {
-        sessionConfig.date = r.data.dateNumeric || todayNumeric;
+      if (!local || !local.dateWords) {
+        sessionConfig.date = todayNumeric;
         sessionConfig.dateWords = r.data.dateWords || todayWords;
       }
       setApiStatus(true, "Connected to register sheet");
@@ -707,16 +750,10 @@ document.getElementById("useTodayBtn").addEventListener("click", () => {
   toast("Date set to today");
 });
 
-document.getElementById("cfgDate").addEventListener("input", () => {
-  const n = document.getElementById("cfgDate").value.trim();
-  const w = wordsFromNumeric(n);
-  if (w) document.getElementById("cfgDateWords").value = w;
-});
-
 document.getElementById("applyDateBlankBtn").addEventListener("click", async () => {
   readDateFromInputs();
-  const numeric = toNumericDate(sessionConfig.date) || todayNumeric;
-  const blanks = cachedRecords.filter(r => !toNumericDate(r.date));
+  const sheetDate = sessionSheetDate();
+  const blanks = cachedRecords.filter(r => !toSheetDate(r.date));
   if (!blanks.length) { toast("No blank dates to fill"); return; }
   let ok = 0;
   for (const r of blanks) {
@@ -724,15 +761,17 @@ document.getElementById("applyDateBlankBtn").addEventListener("click", async () 
       const res = await apiCall({
         action: "update",
         employeeNumber: r.employeeNumber,
-        date: numeric
+        date: sheetDate
       });
       if (res.success) {
-        r.date = numeric;
+        r.date = sheetDate;
         ok++;
       }
     } catch (e) {}
   }
-  toast(`Filled DD/MM/YYYY on ${ok} row(s)`);
+  rosterCache = cachedRecords.slice();
+  rosterLoadedAt = Date.now();
+  toast(`Filled "${sheetDate}" on ${ok} row(s)`);
   renderModList();
 });
 
@@ -787,11 +826,13 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
       const sized = hasSize(r.data) ? `Size on file: <b>${esc(r.data.size)}</b>.` : `Size still pending assignment.`;
       resultDiv.innerHTML = `<div class="result warn"><div class="mark">✓</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
     } else {
-      const stamped = (r.data && r.data.date) ? r.data.date : `${todayNumeric} (${todayWords})`;
+      const stamped = toSheetDate(r.data && r.data.date) || todayWords;
       resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regName").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
+      rosterLoadedAt = 0; // refresh Find Me cache
+      ensureRoster(true).catch(() => {});
       toast("Saved to spreadsheet");
     }
   } catch (e) {
@@ -808,10 +849,11 @@ async function doFind(){
     out.innerHTML = `<div class="empty">Enter exactly 4 digits</div>`;
     return;
   }
-  out.innerHTML = '<div class="spinner"></div>';
+  // Instant if roster already cached; otherwise one list load then local filter
+  if (!rosterCache.length) out.innerHTML = '<div class="spinner"></div>';
   try {
-    const r = await apiCall({ action: "search", query: digits });
-    const records = r.success ? r.data : [];
+    const list = await ensureRoster(false);
+    const records = findByLast4(digits, list);
     if (records.length === 0) {
       out.innerHTML = `<div class="empty">No match found. Use Register if you haven't signed in yet.</div>`;
       return;
@@ -820,7 +862,7 @@ async function doFind(){
       <div class="entry">
         <div>
           <div class="name">${esc(rr.name)}</div>
-          <div class="meta">${esc(rr.company)} · ••${esc(String(rr.employeeNumber).slice(-4))}</div>
+          <div class="meta">${esc(rr.company)} · Control ••${esc(String(rr.employeeNumber).slice(-4))}<br>${esc(toSheetDate(rr.date) || "Date pending")}</div>
         </div>
         ${sizeBadge(rr.size)}
       </div>
@@ -830,6 +872,10 @@ async function doFind(){
   }
 }
 document.getElementById("findBtn").addEventListener("click", doFind);
+document.getElementById("findInput").addEventListener("input", () => {
+  const digits = document.getElementById("findInput").value.trim();
+  if (digits.length === 4 && rosterCache.length) doFind();
+});
 document.getElementById("findInput").addEventListener("keydown", e => { if (e.key === "Enter") doFind(); });
 
 function renderPinDots(){
@@ -936,7 +982,7 @@ function renderModList(){
           <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}"></td>
           <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" readonly></td>
           <td class="col-co"><input type="text" class="edit-company" value="${esc(r.company)}"></td>
-          <td class="col-date"><input type="text" class="edit-date" value="${esc(toNumericDate(r.date) || "")}" placeholder="${esc(toNumericDate(sessionConfig.date) || todayNumeric)}"></td>
+          <td class="col-date"><input type="text" class="edit-date" value="${esc(toSheetDate(r.date) || "")}" placeholder="${esc(sessionSheetDate())}"></td>
           <td class="col-size">
             <select class="edit-size">
               <option value="" ${!size ? "selected" : ""}>—</option>
@@ -967,6 +1013,8 @@ function renderModList(){
         if (!r.success) { toast(r.error || "Update failed"); return; }
         const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
         if (rec) rec.size = size;
+        const rc = rosterCache.find(x => String(x.employeeNumber) === emp);
+        if (rc) rc.size = size;
         toast("Size saved");
         renderModList();
       } catch (err) { toast("Connection error"); }
@@ -975,7 +1023,7 @@ function renderModList(){
     rowEl.querySelector(".save-row").addEventListener("click", async () => {
       const name = rowEl.querySelector(".edit-name").value.trim();
       const company = rowEl.querySelector(".edit-company").value.trim();
-      const date = toNumericDate(rowEl.querySelector(".edit-date").value.trim());
+      const date = toSheetDate(rowEl.querySelector(".edit-date").value.trim());
       const size = rowEl.querySelector(".edit-size").value;
       if (!name || !company) { toast("Name and company required"); return; }
       try {
@@ -991,6 +1039,7 @@ function renderModList(){
           if (date) rec.date = date;
           if (size) rec.size = size;
         }
+        rosterCache = cachedRecords.slice();
         toast("Row saved to sheet");
         renderModList();
       } catch (err) { toast("Connection error"); }
@@ -1002,6 +1051,7 @@ function renderModList(){
         const r = await apiCall({ action: "delete", employeeNumber: emp });
         if (!r.success) { toast(r.error || "Delete failed"); return; }
         cachedRecords = cachedRecords.filter(x => String(x.employeeNumber) !== emp);
+        rosterCache = cachedRecords.slice();
         toast("Deleted from sheet");
         renderModList();
       } catch (err) { toast("Connection error"); }
@@ -1013,9 +1063,7 @@ async function loadModDashboard(){
   const listEl = document.getElementById("modList");
   listEl.innerHTML = '<div class="spinner"></div>';
   try {
-    const r = await apiCall({ action: "list" });
-    cachedRecords = r.success ? r.data : [];
-    if (!r.success) toast(r.error || "Could not load list");
+    cachedRecords = await ensureRoster(true);
   } catch (e) {
     cachedRecords = [];
     toast("Could not load sheet data");
@@ -1036,14 +1084,15 @@ document.querySelectorAll(".filt").forEach(btn => {
 
 document.getElementById("exportBtn").addEventListener("click", () => {
   readDateFromInputs();
+  const fallback = sessionSheetDate();
   const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
-  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, toNumericDate(r.date) || toNumericDate(sessionConfig.date) || todayNumeric, r.size || ""]));
+  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, toSheetDate(r.date) || fallback, r.size || ""]));
   const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `respirator-fitment-attendance-${(sessionConfig.date || todayNumeric).replace(/\//g,"-")}.csv`;
+  a.download = `respirator-fitment-attendance-${fallback.replace(/\s+/g,"-")}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   toast("CSV downloaded");
@@ -1059,6 +1108,8 @@ document.getElementById("genQrBtn").addEventListener("click", () => {
 
 computeToday();
 loadSessionConfig();
+// Prefetch roster so Find Me / mod search feel instant
+ensureRoster(false).catch(() => {});
 setTimeout(() => {
   const pinType = document.getElementById("pinType");
   if (pinType) pinType.focus();
