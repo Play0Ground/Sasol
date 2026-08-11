@@ -39,26 +39,16 @@
   }
   body::before {
     content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    opacity: .35;
+    position: fixed; inset: 0; pointer-events: none; opacity: .35;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
     mix-blend-mode: soft-light;
   }
   #app { max-width: 440px; margin: 0 auto; padding: 0 0 calc(28px + env(safe-area-inset-bottom)); position: relative; z-index: 1; }
 
-  .hero {
-    padding: 36px 22px 22px;
-    position: relative;
-    overflow: hidden;
-  }
+  .hero { padding: 36px 22px 22px; position: relative; overflow: hidden; }
   .hero::after {
-    content: "";
-    position: absolute;
-    right: -40px; top: -30px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
+    content: ""; position: absolute; right: -40px; top: -30px;
+    width: 180px; height: 180px; border-radius: 50%;
     background: radial-gradient(circle, var(--glow), transparent 70%);
     animation: pulse 4.5s ease-in-out infinite;
   }
@@ -67,111 +57,54 @@
     50% { transform: scale(1.15); opacity: 1; }
   }
   .doc-ref {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    color: var(--safety);
-    margin-bottom: 18px;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: .68rem; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--safety); margin-bottom: 18px;
   }
   .doc-ref span {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--safety);
-    box-shadow: 0 0 12px var(--safety);
-    animation: blink 2.2s ease-in-out infinite;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--safety);
+    box-shadow: 0 0 12px var(--safety); animation: blink 2.2s ease-in-out infinite;
   }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .35; }
-  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
   .hero h1 {
     font-family: 'Fraunces', serif;
-    font-size: clamp(1.85rem, 7vw, 2.35rem);
-    font-weight: 700;
-    line-height: 1.05;
-    margin: 0 0 10px;
-    letter-spacing: -.02em;
-    max-width: 12ch;
+    font-size: clamp(1.85rem, 7vw, 2.35rem); font-weight: 700;
+    line-height: 1.05; margin: 0 0 10px; letter-spacing: -.02em; max-width: 12ch;
   }
-  .hero p.lede {
-    margin: 0;
-    color: var(--soft);
-    font-size: .95rem;
-    line-height: 1.45;
-    max-width: 28ch;
-  }
+  .hero p.lede { margin: 0; color: var(--soft); font-size: .95rem; line-height: 1.45; max-width: 32ch; }
 
   .date-banner {
-    margin: 8px 22px 20px;
-    padding: 16px 18px;
-    border-radius: 18px;
+    margin: 8px 22px 20px; padding: 16px 18px; border-radius: 18px;
     background: linear-gradient(135deg, rgba(240,180,41,.16), rgba(93,206,163,.08));
-    border: 1px solid rgba(240,180,41,.28);
-    display: grid;
-    gap: 4px;
+    border: 1px solid rgba(240,180,41,.28); display: grid; gap: 4px;
     animation: rise .55s ease both;
   }
   @keyframes rise {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: none; }
   }
-  .date-banner .words {
-    font-family: 'Fraunces', serif;
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .date-banner .numeric {
-    font-size: .82rem;
-    font-weight: 600;
-    letter-spacing: .08em;
-    color: var(--safety);
-  }
-  .meta-row {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    margin-top: 10px;
-  }
+  .date-banner .words { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 600; }
+  .date-banner .numeric { font-size: .82rem; font-weight: 600; letter-spacing: .08em; color: var(--safety); }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .meta-pill {
-    font-size: .72rem;
-    font-weight: 600;
-    color: var(--soft);
-    background: rgba(0,0,0,.22);
-    border: 1px solid var(--line);
-    padding: 5px 10px;
-    border-radius: 999px;
+    font-size: .72rem; font-weight: 600; color: var(--soft);
+    background: rgba(0,0,0,.22); border: 1px solid var(--line);
+    padding: 5px 10px; border-radius: 999px;
   }
 
   nav.tabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin: 0 22px 22px;
-    padding: 5px;
-    background: rgba(0,0,0,.28);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    backdrop-filter: blur(10px);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    margin: 0 22px 22px; padding: 5px; background: rgba(0,0,0,.28);
+    border: 1px solid var(--line); border-radius: 16px; backdrop-filter: blur(10px);
   }
   nav.tabs button {
-    border: none;
-    background: transparent;
-    color: var(--faint);
-    font-family: inherit;
-    font-weight: 700;
-    font-size: .72rem;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    padding: 12px 4px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: color .2s, background .2s, transform .2s;
+    border: none; background: transparent; color: var(--faint);
+    font-family: inherit; font-weight: 700; font-size: .72rem;
+    letter-spacing: .04em; text-transform: uppercase; padding: 12px 4px;
+    border-radius: 12px; cursor: pointer; transition: color .2s, background .2s;
   }
   nav.tabs button.active {
-    background: var(--safety);
-    color: var(--safety-ink);
+    background: var(--safety); color: var(--safety-ink);
     box-shadow: 0 8px 20px rgba(240,180,41,.25);
   }
 
@@ -180,117 +113,56 @@
   section.active { display: block; animation: rise .35s ease both; }
 
   .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 22px;
-    backdrop-filter: blur(14px);
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 22px; padding: 22px; backdrop-filter: blur(14px);
   }
   .panel + .panel { margin-top: 14px; }
 
   label {
-    display: block;
-    font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--soft);
-    margin: 0 0 8px;
+    display: block; font-size: .7rem; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--soft); margin: 0 0 8px;
   }
   .field { margin-bottom: 16px; }
   .field:last-of-type { margin-bottom: 8px; }
   input[type=text] {
-    width: 100%;
-    background: rgba(0,0,0,.28);
-    border: 1px solid var(--line);
-    color: var(--text);
-    padding: 14px 15px;
-    border-radius: 14px;
-    font-size: 1rem;
-    font-family: inherit;
+    width: 100%; background: rgba(0,0,0,.28); border: 1px solid var(--line);
+    color: var(--text); padding: 14px 15px; border-radius: 14px;
+    font-size: 1rem; font-family: inherit;
     transition: border-color .15s, box-shadow .15s;
   }
   input[type=text]:focus {
-    outline: none;
-    border-color: var(--safety);
+    outline: none; border-color: var(--safety);
     box-shadow: 0 0 0 3px rgba(240,180,41,.18);
   }
   input[type=text]::placeholder { color: var(--faint); }
   input[readonly] { opacity: .85; cursor: default; }
   .hint { font-size: .74rem; color: var(--faint); margin-top: 7px; line-height: 1.4; }
 
-  .size-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .size-btn {
-    background: rgba(0,0,0,.28);
-    border: 1px solid var(--line);
-    color: var(--soft);
-    padding: 16px 0 14px;
-    border-radius: 16px;
-    font-family: inherit;
-    font-weight: 800;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: transform .15s, border-color .15s, background .15s, color .15s;
-  }
-  .size-btn small {
-    display: block;
-    font-size: .58rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    margin-top: 4px;
-    color: var(--faint);
-  }
-  .size-btn.selected {
-    background: rgba(240,180,41,.16);
-    border-color: var(--safety);
-    color: var(--safety);
-    transform: translateY(-2px);
-  }
-  .size-btn.selected small { color: var(--safety); }
-
   .btn {
-    width: 100%;
-    border: none;
-    padding: 16px;
-    border-radius: 14px;
-    font-family: inherit;
-    font-weight: 800;
-    font-size: .95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    width: 100%; border: none; padding: 16px; border-radius: 14px;
+    font-family: inherit; font-weight: 800; font-size: .95rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
     transition: transform .12s, opacity .15s;
   }
   .btn:active { transform: scale(.98); }
   .btn:disabled { opacity: .45; cursor: default; transform: none; }
   .btn-primary {
     background: linear-gradient(135deg, #ffd45a, var(--safety));
-    color: var(--safety-ink);
-    margin-top: 10px;
+    color: var(--safety-ink); margin-top: 10px;
     box-shadow: 0 12px 28px rgba(240,180,41,.28);
   }
   .btn-ghost {
-    background: var(--panel-strong);
-    color: var(--text);
-    border: 1px solid var(--line);
+    background: var(--panel-strong); color: var(--text); border: 1px solid var(--line);
   }
   .btn-small { width: auto; padding: 10px 14px; font-size: .78rem; }
 
   .result {
-    margin-top: 16px;
-    padding: 14px 16px;
-    border-radius: 14px;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    animation: rise .3s ease both;
+    margin-top: 16px; padding: 14px 16px; border-radius: 14px;
+    display: flex; gap: 12px; align-items: flex-start; animation: rise .3s ease both;
   }
   .result .mark {
     width: 28px; height: 28px; border-radius: 50%;
-    display: grid; place-items: center;
-    font-size: .85rem; font-weight: 800; flex-shrink: 0;
+    display: grid; place-items: center; font-size: .85rem; font-weight: 800; flex-shrink: 0;
   }
   .result .rtitle { font-weight: 800; font-size: .92rem; margin-bottom: 3px; }
   .result .rbody { font-size: .82rem; color: var(--soft); line-height: 1.45; }
@@ -303,23 +175,23 @@
   .result.err .mark { background: rgba(255,107,107,.2); color: var(--coral); }
 
   .search-row { display: flex; gap: 10px; }
-  .search-row input { flex: 1; letter-spacing: .18em; font-weight: 700; text-align: center; }
+  .search-row input { flex: 1; }
   .search-row .btn { width: auto; padding: 0 18px; }
 
   .entry {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--line);
   }
   .entry:last-child { border-bottom: none; }
   .entry .name { font-weight: 700; }
   .entry .meta { font-size: .75rem; color: var(--faint); margin-top: 3px; }
   .size-tag {
-    font-size: .75rem; font-weight: 800;
-    padding: 6px 12px; border-radius: 999px;
-    background: rgba(240,180,41,.15); color: var(--safety);
+    font-size: .75rem; font-weight: 800; padding: 6px 12px; border-radius: 999px;
+    background: rgba(240,180,41,.15); color: var(--safety); white-space: nowrap;
+  }
+  .size-tag.pending {
+    background: rgba(168,184,192,.12); color: var(--soft);
+    border: 1px dashed var(--line);
   }
 
   .empty { text-align: center; color: var(--faint); font-size: .88rem; padding: 28px 8px; }
@@ -327,12 +199,10 @@
 
   .pin-wrap { text-align: center; padding: 8px 0 4px; }
   .pin-wrap .lock {
-    width: 52px; height: 52px; margin: 0 auto 12px;
-    border-radius: 16px;
-    display: grid; place-items: center;
-    background: rgba(240,180,41,.12);
-    border: 1px solid rgba(240,180,41,.25);
-    color: var(--safety); font-size: 1.2rem; font-weight: 800;
+    width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 16px;
+    display: grid; place-items: center; background: rgba(240,180,41,.12);
+    border: 1px solid rgba(240,180,41,.25); color: var(--safety);
+    font-size: 1.2rem; font-weight: 800;
   }
   .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 18px 0 22px; }
   .pin-dots .dot {
@@ -341,56 +211,65 @@
     transition: background .15s, border-color .15s, transform .15s;
   }
   .pin-dots .dot.filled {
-    background: var(--safety); border-color: var(--safety);
-    transform: scale(1.15);
+    background: var(--safety); border-color: var(--safety); transform: scale(1.15);
   }
   .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .pin-pad button {
-    background: rgba(0,0,0,.28);
-    border: 1px solid var(--line);
-    color: var(--text);
-    padding: 18px 0;
-    border-radius: 14px;
-    font-family: inherit;
-    font-size: 1.15rem;
-    font-weight: 700;
-    cursor: pointer;
+    background: rgba(0,0,0,.28); border: 1px solid var(--line); color: var(--text);
+    padding: 18px 0; border-radius: 14px; font-family: inherit;
+    font-size: 1.15rem; font-weight: 700; cursor: pointer;
   }
   .pin-pad button:active { background: var(--panel-strong); }
   .pin-pad button.clear { color: var(--soft); font-size: .72rem; }
 
   .sec-label {
-    font-size: .7rem; font-weight: 800;
-    letter-spacing: .1em; text-transform: uppercase;
-    color: var(--soft); margin-bottom: 14px;
+    font-size: .7rem; font-weight: 800; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--soft); margin-bottom: 14px;
   }
-  .mod-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .mod-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; }
   .mod-header h2 { margin: 0; font-size: 1rem; font-family: 'Fraunces', serif; }
-  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
   .stat {
-    background: rgba(0,0,0,.22);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px;
+    background: rgba(0,0,0,.22); border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px 10px;
   }
-  .stat .num { font-family: 'Fraunces', serif; font-size: 1.55rem; font-weight: 700; color: var(--safety); }
-  .stat .lbl { font-size: .68rem; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+  .stat .num { font-family: 'Fraunces', serif; font-size: 1.35rem; font-weight: 700; color: var(--safety); }
+  .stat .lbl { font-size: .62rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
 
-  .mod-entry { border-bottom: 1px solid var(--line); padding: 13px 0; }
-  .mod-entry:last-child { border-bottom: none; }
-  .mod-entry .name { font-weight: 700; }
-  .mod-entry .meta { font-size: .73rem; color: var(--faint); margin-top: 2px; }
-  .mod-controls { display: flex; gap: 6px; margin-top: 10px; }
+  .mod-entry {
+    border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px; margin-bottom: 10px; background: rgba(0,0,0,.18);
+  }
+  .mod-entry .name { font-weight: 700; font-size: .95rem; }
+  .mod-entry .meta { font-size: .73rem; color: var(--faint); margin-top: 3px; }
+  .mod-entry .edit-grid { display: grid; gap: 8px; margin-top: 12px; }
+  .mod-entry .edit-grid input { padding: 11px 12px; font-size: .9rem; border-radius: 12px; }
+  .assign-label {
+    font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--faint); margin: 12px 0 8px;
+  }
+  .mod-controls { display: flex; gap: 6px; }
   .mini-size {
     flex: 1; background: rgba(0,0,0,.28); border: 1px solid var(--line);
-    color: var(--soft); padding: 8px 0; border-radius: 10px;
-    font-size: .72rem; font-weight: 800; cursor: pointer; font-family: inherit;
+    color: var(--soft); padding: 10px 0; border-radius: 10px;
+    font-size: .75rem; font-weight: 800; cursor: pointer; font-family: inherit;
   }
   .mini-size.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
+  .row-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .row-actions .btn { flex: 1; padding: 11px; font-size: .78rem; margin-top: 0; }
   .mini-del {
     background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.3);
-    color: var(--coral); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: .72rem; font-weight: 700;
+    color: var(--coral); padding: 11px 14px; border-radius: 10px;
+    cursor: pointer; font-size: .72rem; font-weight: 700; font-family: inherit;
   }
+
+  .filter-chips { display: flex; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
+  .filter-chips button {
+    border: 1px solid var(--line); background: rgba(0,0,0,.22); color: var(--soft);
+    padding: 7px 12px; border-radius: 999px; font-family: inherit;
+    font-size: .72rem; font-weight: 700; cursor: pointer;
+  }
+  .filter-chips button.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
 
   .qr-box { text-align: center; padding: 8px 0 0; }
   .qr-box img { width: 168px; height: 168px; border-radius: 14px; background: #fff; padding: 10px; }
@@ -420,7 +299,7 @@
   <header class="hero">
     <div class="doc-ref"><span></span> GIJ OHES · GP-005-T-001</div>
     <h1>Respirator Fitment Training</h1>
-    <p class="lede">Scan the QR, fill your details once. Control numbers keep the register clean.</p>
+    <p class="lede">Sign in with your details. Moderators assign respirator sizes afterwards.</p>
   </header>
 
   <div class="date-banner" id="dateBanner">
@@ -445,19 +324,11 @@
         <div class="field">
           <label>Sasol Control Number</label>
           <input type="text" id="regEmp" placeholder="e.g. 4471029" inputmode="numeric" autocomplete="off">
-          <div class="hint">Duplicates are blocked by control number — same names are fine.</div>
+          <div class="hint">Duplicates are blocked by control number — same names are fine. Size is assigned later by the moderator.</div>
         </div>
         <div class="field">
           <label>Company</label>
           <input type="text" id="regCompany" placeholder="e.g. Gijima OHES" autocomplete="organization">
-        </div>
-        <div class="field">
-          <label>Respirator Size</label>
-          <div class="size-row" id="sizeRow">
-            <button type="button" class="size-btn" data-size="S">S<small>SMALL</small></button>
-            <button type="button" class="size-btn" data-size="M">M<small>MEDIUM</small></button>
-            <button type="button" class="size-btn" data-size="L">L<small>LARGE</small></button>
-          </div>
         </div>
         <button class="btn btn-primary" id="submitBtn">Sign Me In</button>
         <div id="regResult"></div>
@@ -468,7 +339,7 @@
       <div class="panel">
         <label>Last 4 Digits of Control Number</label>
         <div class="search-row">
-          <input type="text" id="findInput" placeholder="1029" inputmode="numeric" maxlength="4">
+          <input type="text" id="findInput" placeholder="1029" inputmode="numeric" maxlength="4" style="letter-spacing:.18em;font-weight:700;text-align:center;">
           <button class="btn btn-primary" id="findBtn">Find</button>
         </div>
         <div id="findResults"></div>
@@ -515,7 +386,7 @@
         <div class="panel">
           <div class="qr-box">
             <div class="sec-label" style="text-align:center;">Registration Link / QR</div>
-            <p style="color:var(--faint);font-size:.75rem;margin:0 0 12px;">Uses this page’s URL by default. Generate a QR to print.</p>
+            <p style="color:var(--faint);font-size:.75rem;margin:0 0 12px;">Generate a QR for people to scan and self-register.</p>
             <img id="qrImg" src="" alt="QR code" style="display:none;">
           </div>
           <div class="link-row">
@@ -526,15 +397,26 @@
 
         <div class="panel">
           <div class="mod-header">
-            <h2>All Attendees</h2>
+            <h2>Assign &amp; Edit</h2>
             <button class="btn btn-ghost btn-small" id="refreshBtn">Refresh</button>
           </div>
           <div class="stat-row">
-            <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Registered</div></div>
-            <div class="stat"><div class="num" id="statToday">—</div><div class="lbl">Sizes S / M / L</div></div>
+            <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Total</div></div>
+            <div class="stat"><div class="num" id="statPending">0</div><div class="lbl">No Size</div></div>
+            <div class="stat"><div class="num" id="statSized">0</div><div class="lbl">Sized</div></div>
+          </div>
+
+          <label>Search (name or last 4 digits)</label>
+          <div class="search-row" style="margin-bottom:12px;">
+            <input type="text" id="modSearch" placeholder="Malepe or 1029">
+          </div>
+          <div class="filter-chips">
+            <button type="button" class="filt on" data-filt="all">All</button>
+            <button type="button" class="filt" data-filt="pending">Needs size</button>
+            <button type="button" class="filt" data-filt="sized">Sized</button>
           </div>
           <div id="modList"></div>
-          <button class="btn btn-ghost" id="exportBtn" style="margin-top:14px;">Export CSV</button>
+          <button class="btn btn-ghost" id="exportBtn" style="margin-top:8px;">Export CSV</button>
         </div>
       </div>
     </section>
@@ -548,11 +430,12 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxp2RyVJLAgsi13190nIHNk
 const MOD_PIN = "2026";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-let selectedSize = null;
 let pinBuffer = "";
 let sessionConfig = { date: "", location: "Sasol Club", facilitator: "" };
 let todayNumeric = "";
 let todayWords = "";
+let cachedRecords = [];
+let modFilter = "all";
 
 function pad2(n){ return String(n).padStart(2,"0"); }
 
@@ -588,6 +471,16 @@ function esc(s){
   return (s||"").toString().replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
+}
+
+function hasSize(r){
+  const s = (r.size || "").toString().trim().toUpperCase();
+  return s === "S" || s === "M" || s === "L";
+}
+
+function sizeBadge(size){
+  if (hasSize({ size })) return `<span class="size-tag">${esc(size)}</span>`;
+  return `<span class="size-tag pending">Pending</span>`;
 }
 
 async function apiGet(params){
@@ -635,7 +528,6 @@ async function loadSessionConfig(){
   document.getElementById("cfgLocation").value = sessionConfig.location || "Sasol Club";
   document.getElementById("cfgFacilitator").value = sessionConfig.facilitator || "";
   renderSessionMeta();
-  // Keep backend date aligned with today
   try {
     await apiPost({
       action: "setConfig",
@@ -658,14 +550,6 @@ document.getElementById("saveCfgBtn").addEventListener("click", async () => {
   toast("Session details saved");
 });
 
-document.querySelectorAll(".size-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
-    selectedSize = btn.dataset.size;
-  });
-});
-
 document.getElementById("submitBtn").addEventListener("click", async () => {
   applyAutoDate();
   const name = document.getElementById("regName").value.trim();
@@ -674,8 +558,8 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   const resultDiv = document.getElementById("regResult");
   resultDiv.innerHTML = "";
 
-  if (!name || !empRaw || !company || !selectedSize) {
-    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in name, control number, company, and pick a size.</div></div></div>`;
+  if (!name || !empRaw || !company) {
+    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in name, control number, and company.</div></div></div>`;
     return;
   }
 
@@ -690,19 +574,18 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
       employeeNumber: empRaw,
       company,
       date: todayNumeric,
-      size: selectedSize
+      size: ""
     });
     if (!r.success) {
       resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Something went wrong</div><div class="rbody">${esc(r.error||"Please try again.")}</div></div></div>`;
     } else if (r.duplicate) {
-      resultDiv.innerHTML = `<div class="result warn"><div class="mark">✓</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. Size on file: <b>${esc(r.data.size)}</b>.</div></div></div>`;
+      const sized = hasSize(r.data) ? `Size on file: <b>${esc(r.data.size)}</b>.` : `Size still pending assignment.`;
+      resultDiv.innerHTML = `<div class="result warn"><div class="mark">✓</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
     } else {
-      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)} · Size <b>${esc(selectedSize)}</b><br>${esc(todayWords)} (${esc(todayNumeric)})</div></div></div>`;
+      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>${esc(todayWords)} (${esc(todayNumeric)})<br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regName").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
-      document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("selected"));
-      selectedSize = null;
     }
   } catch (e) {
     resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Connection error</div><div class="rbody">Check your internet connection and try again.</div></div></div>`;
@@ -730,9 +613,9 @@ async function doFind(){
       <div class="entry">
         <div>
           <div class="name">${esc(rr.name)}</div>
-          <div class="meta">${esc(rr.company)} · ••${esc(rr.employeeNumber.slice(-4))}</div>
+          <div class="meta">${esc(rr.company)} · ••${esc(String(rr.employeeNumber).slice(-4))}</div>
         </div>
-        <div class="size-tag">${esc(rr.size)}</div>
+        ${sizeBadge(rr.size)}
       </div>
     `).join("");
   } catch (e) {
@@ -771,7 +654,103 @@ document.getElementById("pinPad").addEventListener("click", e => {
   }
 });
 
-let cachedRecords = [];
+function filteredRecords(){
+  const q = document.getElementById("modSearch").value.trim().toLowerCase();
+  return cachedRecords.filter(r => {
+    if (modFilter === "pending" && hasSize(r)) return false;
+    if (modFilter === "sized" && !hasSize(r)) return false;
+    if (!q) return true;
+    const name = (r.name || "").toLowerCase();
+    const emp = String(r.employeeNumber || "");
+    const company = (r.company || "").toLowerCase();
+    return name.includes(q) || company.includes(q) || emp.includes(q) || emp.slice(-4) === q;
+  });
+}
+
+function renderModList(){
+  const listEl = document.getElementById("modList");
+  const records = filteredRecords();
+  const pending = cachedRecords.filter(r => !hasSize(r)).length;
+  const sized = cachedRecords.length - pending;
+  document.getElementById("statTotal").textContent = cachedRecords.length;
+  document.getElementById("statPending").textContent = pending;
+  document.getElementById("statSized").textContent = sized;
+
+  if (records.length === 0) {
+    listEl.innerHTML = `<div class="empty"><span class="glyph">∅</span>No matching attendees</div>`;
+    return;
+  }
+
+  listEl.innerHTML = records.map(r => {
+    const emp = String(r.employeeNumber);
+    const size = (r.size || "").toString().toUpperCase();
+    return `
+    <div class="mod-entry" data-emp="${esc(emp)}">
+      <div class="name">${esc(r.name)}</div>
+      <div class="meta">${esc(r.company)} · ${esc(emp)} · ${esc(r.date||"")}</div>
+      <div class="edit-grid">
+        <input type="text" class="edit-name" value="${esc(r.name)}" placeholder="Name">
+        <input type="text" class="edit-company" value="${esc(r.company)}" placeholder="Company">
+      </div>
+      <div class="assign-label">Assign size</div>
+      <div class="mod-controls">
+        <button type="button" class="mini-size ${size==="S"?"on":""}" data-size="S">S</button>
+        <button type="button" class="mini-size ${size==="M"?"on":""}" data-size="M">M</button>
+        <button type="button" class="mini-size ${size==="L"?"on":""}" data-size="L">L</button>
+      </div>
+      <div class="row-actions">
+        <button type="button" class="btn btn-ghost save-btn">Save edits</button>
+        <button type="button" class="mini-del">Delete</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  listEl.querySelectorAll(".mod-entry").forEach(entryEl => {
+    const emp = entryEl.dataset.emp;
+
+    entryEl.querySelectorAll(".mini-size").forEach(sb => {
+      sb.addEventListener("click", async () => {
+        const size = sb.dataset.size;
+        try {
+          const r = await apiPost({ action: "update", employeeNumber: emp, size });
+          if (!r.success) { toast(r.error || "Update failed"); return; }
+          const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
+          if (rec) rec.size = size;
+          entryEl.querySelectorAll(".mini-size").forEach(x => x.classList.remove("on"));
+          sb.classList.add("on");
+          toast("Size assigned · sheet updated");
+          renderModList();
+        } catch (e) { toast("Connection error"); }
+      });
+    });
+
+    entryEl.querySelector(".save-btn").addEventListener("click", async () => {
+      const name = entryEl.querySelector(".edit-name").value.trim();
+      const company = entryEl.querySelector(".edit-company").value.trim();
+      if (!name || !company) { toast("Name and company required"); return; }
+      try {
+        const r = await apiPost({ action: "update", employeeNumber: emp, name, company });
+        if (!r.success) { toast(r.error || "Update failed"); return; }
+        const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
+        if (rec) { rec.name = name; rec.company = company; }
+        toast("Edits saved · sheet updated");
+        renderModList();
+      } catch (e) { toast("Connection error"); }
+    });
+
+    entryEl.querySelector(".mini-del").addEventListener("click", async () => {
+      if (!confirm("Remove this attendee from the register and spreadsheet?")) return;
+      try {
+        const r = await apiPost({ action: "delete", employeeNumber: emp });
+        if (!r.success) { toast(r.error || "Delete failed"); return; }
+        cachedRecords = cachedRecords.filter(x => String(x.employeeNumber) !== emp);
+        toast("Removed from sheet");
+        renderModList();
+      } catch (e) { toast("Connection error"); }
+    });
+  });
+}
+
 async function loadModDashboard(){
   applyAutoDate();
   const listEl = document.getElementById("modList");
@@ -780,54 +759,24 @@ async function loadModDashboard(){
     const r = await apiGet({ action: "list" });
     cachedRecords = r.success ? r.data : [];
   } catch (e) { cachedRecords = []; }
-
-  document.getElementById("statTotal").textContent = cachedRecords.length;
-  const counts = { S: 0, M: 0, L: 0 };
-  cachedRecords.forEach(r => { if (counts[r.size] !== undefined) counts[r.size]++; });
-  document.getElementById("statToday").textContent = `${counts.S} / ${counts.M} / ${counts.L}`;
-
-  if (cachedRecords.length === 0) {
-    listEl.innerHTML = `<div class="empty"><span class="glyph">∅</span>No attendees yet</div>`;
-    return;
-  }
-
-  listEl.innerHTML = cachedRecords.map(r => `
-    <div class="mod-entry" data-emp="${esc(r.employeeNumber)}">
-      <div class="name">${esc(r.name)}</div>
-      <div class="meta">${esc(r.company)} · ${esc(r.employeeNumber)} · ${esc(r.date||"")}</div>
-      <div class="mod-controls">
-        <button class="mini-size ${r.size==="S"?"on":""}" data-size="S">S</button>
-        <button class="mini-size ${r.size==="M"?"on":""}" data-size="M">M</button>
-        <button class="mini-size ${r.size==="L"?"on":""}" data-size="L">L</button>
-        <button class="mini-del">Delete</button>
-      </div>
-    </div>
-  `).join("");
-
-  listEl.querySelectorAll(".mod-entry").forEach(entryEl => {
-    const emp = entryEl.dataset.emp;
-    entryEl.querySelectorAll(".mini-size").forEach(sb => {
-      sb.addEventListener("click", async () => {
-        await apiPost({ action: "update", employeeNumber: emp, size: sb.dataset.size });
-        entryEl.querySelectorAll(".mini-size").forEach(x => x.classList.remove("on"));
-        sb.classList.add("on");
-        toast("Size updated");
-      });
-    });
-    entryEl.querySelector(".mini-del").addEventListener("click", async () => {
-      if (!confirm("Remove this attendee?")) return;
-      await apiPost({ action: "delete", employeeNumber: emp });
-      loadModDashboard();
-      toast("Entry removed");
-    });
-  });
+  renderModList();
 }
 document.getElementById("refreshBtn").addEventListener("click", loadModDashboard);
+document.getElementById("modSearch").addEventListener("input", renderModList);
+
+document.querySelectorAll(".filt").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filt").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    modFilter = btn.dataset.filt;
+    renderModList();
+  });
+});
 
 document.getElementById("exportBtn").addEventListener("click", () => {
   applyAutoDate();
   const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
-  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date || todayNumeric, r.size]));
+  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date || todayNumeric, r.size || ""]));
   const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
