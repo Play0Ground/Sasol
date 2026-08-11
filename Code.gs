@@ -4,10 +4,10 @@
  * After editing: Deploy → Manage deployments → Edit → New version → Deploy
  * Who has access: Anyone | Execute as: Me
  *
- * Sheets: "Attendance" (A–E) + "Config" (A1 date, A2 location, A3 facilitator)
+ * Auto-finds the sheet tab that has columns:
+ * Name | Control Number | Company | Date | Size
  */
 
-const ATTENDANCE_SHEET = 'Attendance';
 const CONFIG_SHEET = 'Config';
 const TZ = 'Africa/Johannesburg';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -30,11 +30,86 @@ function todayParts_() {
   return { numeric: numeric, words: words, display: numeric + ' (' + words + ')' };
 }
 
-function getAttendanceSheet_() {
+function norm_(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function empStr_(v) {
+  if (typeof v === 'number' && isFinite(v)) return String(Math.round(v));
+  return String(v || '').trim();
+}
+
+/**
+ * Find the register sheet + header row by looking for Name + Control Number headers.
+ * Picks the sheet with the most real data rows.
+ */
+function locateRegister_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(ATTENDANCE_SHEET);
+  const sheets = ss.getSheets();
+  let best = null;
+
+  for (let s = 0; s < sheets.length; s++) {
+    const sh = sheets[s];
+    if (sh.getName() === CONFIG_SHEET) continue;
+
+    const lastRow = Math.max(sh.getLastRow(), 1);
+    const lastCol = Math.max(sh.getLastColumn(), 5);
+    const scanRows = Math.min(lastRow, 15);
+    const values = sh.getRange(1, 1, scanRows, Math.min(lastCol, 10)).getValues();
+
+    for (let r = 0; r < values.length; r++) {
+      const row = values[r].map(norm_);
+      let nameCol = -1;
+      let empCol = -1;
+      let companyCol = -1;
+      let dateCol = -1;
+      let sizeCol = -1;
+
+      for (let c = 0; c < row.length; c++) {
+        const h = row[c];
+        if (!h) continue;
+        if (nameCol < 0 && (h.indexOf('attendee') >= 0 || h.indexOf('name') >= 0 || h.indexOf('surname') >= 0)) nameCol = c;
+        if (empCol < 0 && (h.indexOf('control') >= 0 || h.indexOf('employee') >= 0 || h === 'empno' || h.indexOf('sasolcontrol') >= 0)) empCol = c;
+        if (companyCol < 0 && h.indexOf('company') >= 0) companyCol = c;
+        if (dateCol < 0 && h.indexOf('date') >= 0) dateCol = c;
+        if (sizeCol < 0 && (h.indexOf('size') >= 0 || h.indexOf('respirator') >= 0)) sizeCol = c;
+      }
+
+      if (nameCol < 0 || empCol < 0) continue;
+
+      // Count data rows under this header
+      const dataStart = r + 2; // 1-based sheet row after header
+      const endRow = sh.getLastRow();
+      let count = 0;
+      if (endRow >= dataStart) {
+        const empVals = sh.getRange(dataStart, empCol + 1, endRow, 1).getValues();
+        for (let i = 0; i < empVals.length; i++) {
+          if (empStr_(empVals[i][0]) !== '') count++;
+        }
+      }
+
+      const candidate = {
+        sheet: sh,
+        headerRow: r + 1,
+        nameCol: nameCol,
+        empCol: empCol,
+        companyCol: companyCol >= 0 ? companyCol : 2,
+        dateCol: dateCol >= 0 ? dateCol : 3,
+        sizeCol: sizeCol >= 0 ? sizeCol : 4,
+        count: count
+      };
+
+      if (!best || candidate.count > best.count) best = candidate;
+      break; // use first matching header row on this sheet
+    }
+  }
+
+  if (best) return best;
+
+  // Fallback: create Attendance sheet
+  let sh = ss.getSheetByName('Attendance');
   if (!sh) {
-    sh = ss.insertSheet(ATTENDANCE_SHEET);
+    sh = ss.insertSheet('Attendance');
     sh.appendRow([
       'Attendee Name and Surname',
       'Sasol Control Number',
@@ -43,7 +118,16 @@ function getAttendanceSheet_() {
       'Respirator Size Required (S/M/L)'
     ]);
   }
-  return sh;
+  return {
+    sheet: sh,
+    headerRow: 1,
+    nameCol: 0,
+    empCol: 1,
+    companyCol: 2,
+    dateCol: 3,
+    sizeCol: 4,
+    count: 0
+  };
 }
 
 function getConfigSheet_() {
@@ -62,12 +146,15 @@ function readConfig_() {
   const sh = getConfigSheet_();
   const today = todayParts_();
   sh.getRange('A1').setValue(today.display);
+  const loc = locateRegister_();
   return {
     date: today.display,
     dateNumeric: today.numeric,
     dateWords: today.words,
     location: String(sh.getRange('A2').getValue() || 'Sasol Club'),
-    facilitator: String(sh.getRange('A3').getValue() || '')
+    facilitator: String(sh.getRange('A3').getValue() || ''),
+    sheetName: loc.sheet.getName(),
+    recordCount: loc.count
   };
 }
 
@@ -92,38 +179,45 @@ function formatDateCell_(value) {
     const m = Number(Utilities.formatDate(value, TZ, 'M'));
     return dd + '/' + mm + '/' + y + ' (' + d + ' ' + MONTHS[m - 1] + ' ' + y + ')';
   }
-  return String(value || '');
+  return String(value || '').trim();
 }
 
-function rowToRecord_(row) {
+function rowToRecordFrom_(row, map) {
   return {
-    name: String(row[0] || ''),
-    employeeNumber: String(row[1] || ''),
-    company: String(row[2] || ''),
-    date: formatDateCell_(row[3]),
-    size: String(row[4] || '').trim().toUpperCase()
+    name: String(row[map.nameCol] || '').trim(),
+    employeeNumber: empStr_(row[map.empCol]),
+    company: String(row[map.companyCol] || '').trim(),
+    date: formatDateCell_(row[map.dateCol]),
+    size: String(row[map.sizeCol] || '').trim().toUpperCase()
   };
 }
 
 function listRecords_() {
-  const sh = getAttendanceSheet_();
+  const map = locateRegister_();
+  const sh = map.sheet;
+  const start = map.headerRow + 1;
   const last = sh.getLastRow();
-  if (last < 2) return [];
-  const values = sh.getRange(2, 1, last, 5).getValues();
+  if (last < start) return [];
+
+  const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
+  const values = sh.getRange(start, 1, last, maxCol).getValues();
   return values
-    .filter(r => String(r[1] || '').trim() !== '')
-    .map(rowToRecord_);
+    .map(function(row) { return rowToRecordFrom_(row, map); })
+    .filter(function(r) { return r.employeeNumber !== ''; });
 }
 
 function findRowByEmployee_(emp) {
-  const sh = getAttendanceSheet_();
+  const map = locateRegister_();
+  const sh = map.sheet;
+  const start = map.headerRow + 1;
   const last = sh.getLastRow();
-  if (last < 2) return null;
-  const nums = sh.getRange(2, 2, last, 1).getValues();
-  const target = String(emp).trim();
+  if (last < start) return null;
+
+  const nums = sh.getRange(start, map.empCol + 1, last, 1).getValues();
+  const target = empStr_(emp);
   for (let i = 0; i < nums.length; i++) {
-    if (String(nums[i][0]).trim() === target) {
-      return { sheet: sh, row: i + 2 };
+    if (empStr_(nums[i][0]) === target) {
+      return { sheet: sh, row: start + i, map: map };
     }
   }
   return null;
@@ -131,7 +225,7 @@ function findRowByEmployee_(emp) {
 
 function handleRegister_(name, employeeNumber, company, size) {
   name = String(name || '').trim();
-  employeeNumber = String(employeeNumber || '').trim();
+  employeeNumber = empStr_(employeeNumber);
   company = String(company || '').trim();
   size = String(size || '').trim().toUpperCase();
   const today = todayParts_();
@@ -143,37 +237,54 @@ function handleRegister_(name, employeeNumber, company, size) {
 
   const existing = findRowByEmployee_(employeeNumber);
   if (existing) {
-    const rowVals = existing.sheet.getRange(existing.row, 1, 1, 5).getValues()[0];
-    return { success: true, duplicate: true, data: rowToRecord_(rowVals) };
+    const map = existing.map;
+    const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
+    const rowVals = existing.sheet.getRange(existing.row, 1, 1, maxCol).getValues()[0];
+    return { success: true, duplicate: true, data: rowToRecordFrom_(rowVals, map) };
   }
 
-  getAttendanceSheet_().appendRow([name, employeeNumber, company, date, size]);
+  const map = locateRegister_();
+  const sh = map.sheet;
+  const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
+  const row = new Array(maxCol);
+  for (let i = 0; i < maxCol; i++) row[i] = '';
+  row[map.nameCol] = name;
+  row[map.empCol] = employeeNumber;
+  row[map.companyCol] = company;
+  row[map.dateCol] = date;
+  row[map.sizeCol] = size;
+  sh.appendRow(row);
+
   writeConfig_({ date: date });
   return {
     success: true,
     duplicate: false,
-    data: { name: name, employeeNumber: employeeNumber, company: company, date: date, size: size, dateNumeric: today.numeric, dateWords: today.words }
+    data: { name: name, employeeNumber: employeeNumber, company: company, date: date, size: size, dateNumeric: today.numeric, dateWords: today.words },
+    sheetName: sh.getName()
   };
 }
 
 function handleUpdate_(employeeNumber, name, company, date, size) {
-  employeeNumber = String(employeeNumber || '').trim();
+  employeeNumber = empStr_(employeeNumber);
   const found = findRowByEmployee_(employeeNumber);
   if (!found) return { success: false, error: 'Employee not found' };
 
   const sh = found.sheet;
   const row = found.row;
-  if (name !== undefined && name !== null && String(name).length) sh.getRange(row, 1).setValue(String(name).trim());
-  if (company !== undefined && company !== null && String(company).length) sh.getRange(row, 3).setValue(String(company).trim());
-  if (date !== undefined && date !== null && String(date).length) sh.getRange(row, 4).setValue(String(date).trim());
-  if (size !== undefined && size !== null && String(size).length) sh.getRange(row, 5).setValue(String(size).trim().toUpperCase());
+  const map = found.map;
 
-  const rowVals = sh.getRange(row, 1, 1, 5).getValues()[0];
-  return { success: true, data: rowToRecord_(rowVals) };
+  if (name !== undefined && name !== null && String(name).length) sh.getRange(row, map.nameCol + 1).setValue(String(name).trim());
+  if (company !== undefined && company !== null && String(company).length) sh.getRange(row, map.companyCol + 1).setValue(String(company).trim());
+  if (date !== undefined && date !== null && String(date).length) sh.getRange(row, map.dateCol + 1).setValue(String(date).trim());
+  if (size !== undefined && size !== null && String(size).length) sh.getRange(row, map.sizeCol + 1).setValue(String(size).trim().toUpperCase());
+
+  const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
+  const rowVals = sh.getRange(row, 1, 1, maxCol).getValues()[0];
+  return { success: true, data: rowToRecordFrom_(rowVals, map) };
 }
 
 function handleDelete_(employeeNumber) {
-  employeeNumber = String(employeeNumber || '').trim();
+  employeeNumber = empStr_(employeeNumber);
   const found = findRowByEmployee_(employeeNumber);
   if (!found) return { success: false, error: 'Employee not found' };
   found.sheet.deleteRow(found.row);
@@ -187,20 +298,33 @@ function doGet(e) {
     const action = String(p.action || '').toLowerCase();
 
     if (action === 'ping' || action === 'health') {
-      return jsonOut_({ success: true, ok: true, time: todayParts_().display });
+      const loc = locateRegister_();
+      return jsonOut_({
+        success: true,
+        ok: true,
+        time: todayParts_().display,
+        sheetName: loc.sheet.getName(),
+        recordCount: loc.count
+      });
     }
     if (action === 'config') {
       return jsonOut_({ success: true, data: readConfig_() });
     }
     if (action === 'list') {
-      return jsonOut_({ success: true, data: listRecords_() });
+      const loc = locateRegister_();
+      return jsonOut_({
+        success: true,
+        data: listRecords_(),
+        sheetName: loc.sheet.getName()
+      });
     }
     if (action === 'search') {
       const q = String(p.query || '').trim();
-      const matches = listRecords_().filter(r => String(r.employeeNumber).slice(-4) === q);
+      const matches = listRecords_().filter(function(r) {
+        return String(r.employeeNumber).slice(-4) === q;
+      });
       return jsonOut_({ success: true, data: matches });
     }
-    // GET fallbacks (more reliable from GitHub Pages than POST)
     if (action === 'register') {
       return jsonOut_(handleRegister_(p.name, p.employeeNumber, p.company, p.size));
     }
