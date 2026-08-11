@@ -17,11 +17,26 @@
 
 const ATTENDANCE_SHEET = 'Attendance';
 const CONFIG_SHEET = 'Config';
+const TZ = 'Africa/Johannesburg';
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function jsonOut_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Always today's date in SA — DD/MM/YYYY + words */
+function todayParts_() {
+  const now = new Date();
+  const d = Number(Utilities.formatDate(now, TZ, 'd'));
+  const m = Number(Utilities.formatDate(now, TZ, 'M'));
+  const y = Number(Utilities.formatDate(now, TZ, 'yyyy'));
+  const dd = Utilities.formatDate(now, TZ, 'dd');
+  const mm = Utilities.formatDate(now, TZ, 'MM');
+  const numeric = dd + '/' + mm + '/' + y;
+  const words = d + ' ' + MONTHS[m - 1] + ' ' + y;
+  return { numeric: numeric, words: words, display: numeric + ' (' + words + ')' };
 }
 
 function getAttendanceSheet_() {
@@ -54,8 +69,13 @@ function getConfigSheet_() {
 
 function readConfig_() {
   const sh = getConfigSheet_();
+  const today = todayParts_();
+  // Always surface today's date; keep location/facilitator from sheet
+  sh.getRange('A1').setValue(today.display);
   return {
-    date: String(sh.getRange('A1').getValue() || ''),
+    date: today.display,
+    dateNumeric: today.numeric,
+    dateWords: today.words,
     location: String(sh.getRange('A2').getValue() || 'Sasol Club'),
     facilitator: String(sh.getRange('A3').getValue() || '')
   };
@@ -69,12 +89,24 @@ function writeConfig_(cfg) {
   return readConfig_();
 }
 
+function formatDateCell_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    const dd = Utilities.formatDate(value, TZ, 'dd');
+    const mm = Utilities.formatDate(value, TZ, 'MM');
+    const y = Utilities.formatDate(value, TZ, 'yyyy');
+    const d = Number(Utilities.formatDate(value, TZ, 'd'));
+    const m = Number(Utilities.formatDate(value, TZ, 'M'));
+    return dd + '/' + mm + '/' + y + ' (' + d + ' ' + MONTHS[m - 1] + ' ' + y + ')';
+  }
+  return String(value || '');
+}
+
 function rowToRecord_(row) {
   return {
     name: String(row[0] || ''),
     employeeNumber: String(row[1] || ''),
     company: String(row[2] || ''),
-    date: String(row[3] || ''),
+    date: formatDateCell_(row[3]),
     size: String(row[4] || '').trim().toUpperCase()
   };
 }
@@ -83,7 +115,7 @@ function listRecords_() {
   const sh = getAttendanceSheet_();
   const last = sh.getLastRow();
   if (last < 2) return [];
-  const values = sh.getRange(2, 1, last - 1, 5).getValues();
+  const values = sh.getRange(2, 1, last, 5).getValues();
   return values
     .filter(r => String(r[1] || '').trim() !== '')
     .map(rowToRecord_);
@@ -93,7 +125,7 @@ function findRowByEmployee_(emp) {
   const sh = getAttendanceSheet_();
   const last = sh.getLastRow();
   if (last < 2) return null;
-  const nums = sh.getRange(2, 2, last - 1, 1).getValues();
+  const nums = sh.getRange(2, 2, last, 1).getValues();
   const target = String(emp).trim();
   for (let i = 0; i < nums.length; i++) {
     if (String(nums[i][0]).trim() === target) {
@@ -130,8 +162,9 @@ function doPost(e) {
     const action = String(body.action || '').toLowerCase();
 
     if (action === 'setconfig') {
+      const today = todayParts_();
       const data = writeConfig_({
-        date: body.date,
+        date: today.display, // always auto today — ignore client override
         location: body.location,
         facilitator: body.facilitator
       });
@@ -142,7 +175,9 @@ function doPost(e) {
       const name = String(body.name || '').trim();
       const employeeNumber = String(body.employeeNumber || '').trim();
       const company = String(body.company || '').trim();
-      const date = String(body.date || '').trim();
+      // Date always stamped server-side (SA time) — auto upload to sheet
+      const today = todayParts_();
+      const date = today.display;
       // Size optional — moderator assigns later
       const size = String(body.size || '').trim().toUpperCase();
 
@@ -157,10 +192,12 @@ function doPost(e) {
       }
 
       getAttendanceSheet_().appendRow([name, employeeNumber, company, date, size]);
+      // Keep session config date in sync with today
+      writeConfig_({ date: date });
       return jsonOut_({
         success: true,
         duplicate: false,
-        data: { name, employeeNumber, company, date, size }
+        data: { name, employeeNumber, company, date, size, dateNumeric: today.numeric, dateWords: today.words }
       });
     }
 

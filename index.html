@@ -582,7 +582,8 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
       const sized = hasSize(r.data) ? `Size on file: <b>${esc(r.data.size)}</b>.` : `Size still pending assignment.`;
       resultDiv.innerHTML = `<div class="result warn"><div class="mark">✓</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
     } else {
-      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>${esc(todayWords)} (${esc(todayNumeric)})<br>A moderator will assign your respirator size.</div></div></div>`;
+      const stamped = (r.data && r.data.date) ? r.data.date : `${todayNumeric} (${todayWords})`;
+      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regName").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
