@@ -454,7 +454,7 @@
               <input type="hidden" id="cfgDate" value="">
               <div class="date-actions">
                 <button type="button" class="btn btn-ghost btn-small" id="useTodayBtn">Use today</button>
-                <button type="button" class="btn btn-ghost btn-small" id="applyDateBlankBtn">Fill blank dates</button>
+                <button type="button" class="btn btn-ghost btn-small" id="applyDateBlankBtn">Fix / fill dates</button>
               </div>
               <div class="field" style="margin-top:14px;">
                 <label>Meeting Held At</label>
@@ -577,6 +577,17 @@ function toSheetDate(value){
 
 function sessionSheetDate(){
   return toSheetDate(sessionConfig.dateWords || sessionConfig.date || todayWords) || todayWords;
+}
+
+/** True when sheet cell is already "11 August 2026" (not 11/08/2026 (...)) */
+function isWordsDate(value){
+  return /^(\d{1,2})\s+[A-Za-z]+\s+(\d{4})$/.test(String(value || "").trim());
+}
+
+function needsDateFix(value){
+  const s = String(value || "").trim();
+  if (!s) return true; // blank
+  return !isWordsDate(s);
 }
 
 function loadLocalSession(){
@@ -752,26 +763,28 @@ document.getElementById("useTodayBtn").addEventListener("click", () => {
 
 document.getElementById("applyDateBlankBtn").addEventListener("click", async () => {
   readDateFromInputs();
-  const sheetDate = sessionSheetDate();
-  const blanks = cachedRecords.filter(r => !toSheetDate(r.date));
-  if (!blanks.length) { toast("No blank dates to fill"); return; }
+  const sheetDate = sessionSheetDate(); // e.g. 11 August 2026
+  // Blank OR old format like 11/08/2026 (11 August 2026)
+  const targets = cachedRecords.filter(r => needsDateFix(r.date));
+  if (!targets.length) { toast("All dates already look correct"); return; }
   let ok = 0;
-  for (const r of blanks) {
+  for (const r of targets) {
+    const next = String(r.date || "").trim() ? (toSheetDate(r.date) || sheetDate) : sheetDate;
     try {
       const res = await apiCall({
         action: "update",
         employeeNumber: r.employeeNumber,
-        date: sheetDate
+        date: next
       });
       if (res.success) {
-        r.date = sheetDate;
+        r.date = next;
         ok++;
       }
     } catch (e) {}
   }
   rosterCache = cachedRecords.slice();
   rosterLoadedAt = Date.now();
-  toast(`Filled "${sheetDate}" on ${ok} row(s)`);
+  toast(`Set "${sheetDate}" style on ${ok} row(s)`);
   renderModList();
 });
 
@@ -826,12 +839,16 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
       const sized = hasSize(r.data) ? `Size on file: <b>${esc(r.data.size)}</b>.` : `Size still pending assignment.`;
       resultDiv.innerHTML = `<div class="result warn"><div class="mark">✓</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
     } else {
-      const stamped = toSheetDate(r.data && r.data.date) || todayWords;
+      // Apps Script still writes combined date — rewrite to "11 August 2026" via update
+      const stamped = sessionSheetDate() || todayWords;
+      try {
+        await apiCall({ action: "update", employeeNumber: empRaw, date: stamped });
+      } catch (e) {}
       resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regName").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
-      rosterLoadedAt = 0; // refresh Find Me cache
+      rosterLoadedAt = 0;
       ensureRoster(true).catch(() => {});
       toast("Saved to spreadsheet");
     }
