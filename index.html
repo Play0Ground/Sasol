@@ -446,13 +446,14 @@
             <div class="panel">
               <div class="sec-label">Session Details</div>
               <div class="field">
-                <label>Date of Training (DD/MM/YYYY)</label>
+                <label>Date — DD/MM/YYYY</label>
                 <input type="text" id="cfgDate" placeholder="e.g. 11/08/2026" autocomplete="off">
-                <div class="hint" id="cfgDateHint">Auto-fills today, or type your own date.</div>
+                <div class="hint" id="cfgDateHint">Goes into the sheet Date column. Auto today, or type it.</div>
               </div>
               <div class="field">
-                <label>Date in words</label>
+                <label>Month in words</label>
                 <input type="text" id="cfgDateWords" placeholder="e.g. 11 August 2026" autocomplete="off">
+                <div class="hint">Shown on the app banner only — not mixed into the sheet date cell.</div>
               </div>
               <div class="date-actions">
                 <button type="button" class="btn btn-ghost btn-small" id="useTodayBtn">Use today</button>
@@ -549,6 +550,15 @@ function wordsFromNumeric(numeric){
   return `${d} ${MONTHS[mo - 1]} ${y}`;
 }
 
+/** Sheet date column = DD/MM/YYYY only (strip " (11 August 2026)" if present) */
+function toNumericDate(value){
+  const s = String(value || "").trim();
+  if (!s) return "";
+  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return s;
+  return `${pad2(Number(m[1]))}/${pad2(Number(m[2]))}/${m[3]}`;
+}
+
 function loadLocalSession(){
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -572,7 +582,7 @@ function syncDateUI(){
   document.getElementById("cfgDate").value = sessionConfig.date || "";
   document.getElementById("cfgDateWords").value = sessionConfig.dateWords || "";
   document.getElementById("cfgDateHint").textContent =
-    `Today is ${todayNumeric} (${todayWords}). You can keep it or type another date.`;
+    `Today is ${todayNumeric}. Month in words: ${todayWords}.`;
 }
 
 function applyTodayDate(){
@@ -705,8 +715,8 @@ document.getElementById("cfgDate").addEventListener("input", () => {
 
 document.getElementById("applyDateBlankBtn").addEventListener("click", async () => {
   readDateFromInputs();
-  const display = `${sessionConfig.date} (${sessionConfig.dateWords})`;
-  const blanks = cachedRecords.filter(r => !String(r.date || "").trim());
+  const numeric = toNumericDate(sessionConfig.date) || todayNumeric;
+  const blanks = cachedRecords.filter(r => !toNumericDate(r.date));
   if (!blanks.length) { toast("No blank dates to fill"); return; }
   let ok = 0;
   for (const r of blanks) {
@@ -714,15 +724,15 @@ document.getElementById("applyDateBlankBtn").addEventListener("click", async () 
       const res = await apiCall({
         action: "update",
         employeeNumber: r.employeeNumber,
-        date: display
+        date: numeric
       });
       if (res.success) {
-        r.date = display;
+        r.date = numeric;
         ok++;
       }
     } catch (e) {}
   }
-  toast(`Filled date on ${ok} row(s)`);
+  toast(`Filled DD/MM/YYYY on ${ok} row(s)`);
   renderModList();
 });
 
@@ -926,7 +936,7 @@ function renderModList(){
           <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}"></td>
           <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" readonly></td>
           <td class="col-co"><input type="text" class="edit-company" value="${esc(r.company)}"></td>
-          <td class="col-date"><input type="text" class="edit-date" value="${esc(r.date || "")}" placeholder="${esc(sessionConfig.date || todayNumeric)}"></td>
+          <td class="col-date"><input type="text" class="edit-date" value="${esc(toNumericDate(r.date) || "")}" placeholder="${esc(toNumericDate(sessionConfig.date) || todayNumeric)}"></td>
           <td class="col-size">
             <select class="edit-size">
               <option value="" ${!size ? "selected" : ""}>—</option>
@@ -965,7 +975,7 @@ function renderModList(){
     rowEl.querySelector(".save-row").addEventListener("click", async () => {
       const name = rowEl.querySelector(".edit-name").value.trim();
       const company = rowEl.querySelector(".edit-company").value.trim();
-      const date = rowEl.querySelector(".edit-date").value.trim();
+      const date = toNumericDate(rowEl.querySelector(".edit-date").value.trim());
       const size = rowEl.querySelector(".edit-size").value;
       if (!name || !company) { toast("Name and company required"); return; }
       try {
@@ -1027,7 +1037,7 @@ document.querySelectorAll(".filt").forEach(btn => {
 document.getElementById("exportBtn").addEventListener("click", () => {
   readDateFromInputs();
   const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
-  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date || sessionConfig.date || todayNumeric, r.size || ""]));
+  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, toNumericDate(r.date) || toNumericDate(sessionConfig.date) || todayNumeric, r.size || ""]));
   const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
