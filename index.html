@@ -138,16 +138,16 @@
     letter-spacing: .1em; text-transform: uppercase; color: var(--soft); margin: 0 0 8px;
   }
   .field { margin-bottom: 14px; }
-  input[type=text] {
+  input[type=text], input[type=password] {
     width: 100%; background: rgba(0,0,0,.28); border: 1px solid var(--line);
     color: var(--text); padding: 14px 15px; border-radius: 14px;
     font-size: 16px; font-family: inherit;
   }
-  input[type=text]:focus {
+  input[type=text]:focus, input[type=password]:focus {
     outline: none; border-color: var(--safety);
     box-shadow: 0 0 0 3px rgba(240,180,41,.18);
   }
-  input[type=text]::placeholder { color: var(--faint); }
+  input[type=text]::placeholder, input[type=password]::placeholder { color: var(--faint); }
   input[readonly] { opacity: .85; }
   .hint { font-size: .72rem; color: var(--faint); margin-top: 7px; line-height: 1.4; }
 
@@ -239,33 +239,61 @@
   .stat .num { font-family: 'Fraunces', serif; font-size: 1.3rem; font-weight: 700; color: var(--safety); }
   .stat .lbl { font-size: .6rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
 
-  .mod-list { display: grid; gap: 10px; }
-  .mod-entry {
-    border: 1px solid var(--line); border-radius: 16px;
-    padding: 14px; background: rgba(0,0,0,.18);
+  .date-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .date-actions .btn { margin-top: 0; }
+
+  .pin-type {
+    width: 100%; max-width: 220px; margin: 0 auto 14px; display: block;
+    text-align: center; letter-spacing: .35em; font-weight: 800; font-size: 1.1rem;
   }
-  .mod-entry .name { font-weight: 700; }
-  .mod-entry .meta { font-size: .72rem; color: var(--faint); margin-top: 3px; }
-  .mod-entry .edit-grid { display: grid; gap: 8px; margin-top: 12px; }
-  .mod-entry .edit-grid input { padding: 11px 12px; font-size: 16px; border-radius: 12px; }
-  .assign-label {
-    font-size: .62rem; font-weight: 700; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--faint); margin: 12px 0 8px;
+  .pin-hint { text-align: center; color: var(--faint); font-size: .72rem; margin: 0 0 10px; }
+
+  .sheet-wrap {
+    overflow-x: auto; border: 1px solid var(--line); border-radius: 14px;
+    background: rgba(0,0,0,.22);
   }
-  .mod-controls { display: flex; gap: 6px; }
+  .sheet-table {
+    width: 100%; border-collapse: collapse; min-width: 720px;
+    font-size: .78rem;
+  }
+  .sheet-table th {
+    text-align: left; padding: 10px 8px; background: rgba(240,180,41,.1);
+    color: var(--safety); font-size: .62rem; letter-spacing: .06em;
+    text-transform: uppercase; border-bottom: 1px solid var(--line);
+    white-space: nowrap; position: sticky; top: 0;
+  }
+  .sheet-table td {
+    padding: 6px; border-bottom: 1px solid var(--line); vertical-align: middle;
+  }
+  .sheet-table tr:hover td { background: rgba(255,255,255,.03); }
+  .sheet-table input, .sheet-table select {
+    width: 100%; background: rgba(0,0,0,.35); border: 1px solid var(--line);
+    color: var(--text); padding: 8px 8px; border-radius: 8px;
+    font-size: 13px; font-family: inherit;
+  }
+  .sheet-table input:focus, .sheet-table select:focus {
+    outline: none; border-color: var(--safety);
+  }
+  .sheet-table .col-name { min-width: 140px; }
+  .sheet-table .col-emp { min-width: 110px; }
+  .sheet-table .col-co { min-width: 110px; }
+  .sheet-table .col-date { min-width: 150px; }
+  .sheet-table .col-size { min-width: 70px; }
+  .sheet-table .col-act { min-width: 120px; white-space: nowrap; }
+  .sheet-actions { display: flex; gap: 4px; }
+  .sheet-actions button {
+    border: 1px solid var(--line); background: rgba(0,0,0,.3); color: var(--soft);
+    border-radius: 8px; padding: 7px 8px; font-size: .68rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .sheet-actions .save-row { color: var(--mint); border-color: rgba(93,206,163,.35); }
+  .sheet-actions .del-row { color: var(--coral); border-color: rgba(255,107,107,.35); }
   .mini-size {
-    flex: 1; background: rgba(0,0,0,.28); border: 1px solid var(--line);
-    color: var(--soft); padding: 10px 0; border-radius: 10px;
-    font-size: .75rem; font-weight: 800; cursor: pointer; font-family: inherit;
+    background: rgba(0,0,0,.28); border: 1px solid var(--line);
+    color: var(--soft); padding: 8px 0; border-radius: 8px;
+    font-size: .72rem; font-weight: 800; cursor: pointer; font-family: inherit;
   }
   .mini-size.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
-  .row-actions { display: flex; gap: 8px; margin-top: 10px; }
-  .row-actions .btn { flex: 1; padding: 11px; font-size: .76rem; margin-top: 0; }
-  .mini-del {
-    background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.3);
-    color: var(--coral); padding: 11px 14px; border-radius: 10px;
-    cursor: pointer; font-size: .72rem; font-weight: 700; font-family: inherit;
-  }
   .filter-chips { display: flex; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
   .filter-chips button {
     border: 1px solid var(--line); background: rgba(0,0,0,.22); color: var(--soft);
@@ -316,11 +344,9 @@
     main { padding: 0 28px; }
     .panel { padding: 24px; border-radius: 22px; }
     .desktop-grid {
-      display: grid; grid-template-columns: 1fr 1.15fr; gap: 18px; align-items: start;
+      display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start;
     }
-    .mod-list {
-      grid-template-columns: 1fr 1fr; gap: 12px;
-    }
+    :root { --app-max: 1200px; }
     .pin-pad { max-width: 360px; }
     .desktop-only { display: block; }
     .phone-hint { display: none; }
@@ -400,6 +426,8 @@
           <div class="lock">PIN</div>
           <p style="color:var(--soft);font-size:.9rem;margin:0;">Moderator access</p>
         </div>
+        <p class="pin-hint">Type on keyboard or tap the pad</p>
+        <input type="password" id="pinType" class="pin-type" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="••••">
         <div class="pin-dots" id="pinDots">
           <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
         </div>
@@ -418,11 +446,19 @@
             <div class="panel">
               <div class="sec-label">Session Details</div>
               <div class="field">
-                <label>Date of Training (auto)</label>
-                <input type="text" id="cfgDate" readonly>
-                <div class="hint" id="cfgDateHint">Auto today — DD/MM/YYYY + words.</div>
+                <label>Date of Training (DD/MM/YYYY)</label>
+                <input type="text" id="cfgDate" placeholder="e.g. 11/08/2026" autocomplete="off">
+                <div class="hint" id="cfgDateHint">Auto-fills today, or type your own date.</div>
               </div>
               <div class="field">
+                <label>Date in words</label>
+                <input type="text" id="cfgDateWords" placeholder="e.g. 11 August 2026" autocomplete="off">
+              </div>
+              <div class="date-actions">
+                <button type="button" class="btn btn-ghost btn-small" id="useTodayBtn">Use today</button>
+                <button type="button" class="btn btn-ghost btn-small" id="applyDateBlankBtn">Fill blank dates</button>
+              </div>
+              <div class="field" style="margin-top:14px;">
                 <label>Meeting Held At</label>
                 <input type="text" id="cfgLocation" placeholder="e.g. Sasol Club">
               </div>
@@ -447,7 +483,7 @@
 
           <div class="panel">
             <div class="mod-header">
-              <h2>Assign &amp; Edit</h2>
+              <h2>Register sheet</h2>
               <button type="button" class="btn btn-ghost btn-small" id="refreshBtn">Refresh</button>
             </div>
             <div class="stat-row">
@@ -464,7 +500,9 @@
               <button type="button" class="filt" data-filt="pending">Needs size</button>
               <button type="button" class="filt" data-filt="sized">Sized</button>
             </div>
-            <div class="mod-list" id="modList"></div>
+            <div class="sheet-wrap">
+              <div id="modList"></div>
+            </div>
             <button type="button" class="btn btn-ghost" id="exportBtn" style="margin-top:12px;">Export CSV</button>
           </div>
         </div>
@@ -481,11 +519,13 @@ const MOD_PIN = "2026";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 let pinBuffer = "";
-let sessionConfig = { date: "", location: "Sasol Club", facilitator: "" };
+let pinUnlocked = false;
+let sessionConfig = { date: "", dateWords: "", location: "Sasol Club", facilitator: "" };
 let todayNumeric = "";
 let todayWords = "";
 let cachedRecords = [];
 let modFilter = "all";
+const SESSION_KEY = "sasol_session_v1";
 
 function pad2(n){ return String(n).padStart(2,"0"); }
 
@@ -499,15 +539,57 @@ function computeToday(){
   return { numeric: todayNumeric, words: todayWords };
 }
 
-function applyAutoDate(){
-  const { numeric, words } = computeToday();
-  document.getElementById("dateWords").textContent = words;
-  document.getElementById("dateNumeric").textContent = numeric;
-  const cfg = document.getElementById("cfgDate");
-  if (cfg) cfg.value = `${numeric}  ·  ${words}`;
+function wordsFromNumeric(numeric){
+  const m = String(numeric || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return "";
+  const d = Number(m[1]);
+  const mo = Number(m[2]);
+  const y = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return "";
+  return `${d} ${MONTHS[mo - 1]} ${y}`;
+}
+
+function loadLocalSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+function saveLocalSession(){
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    date: sessionConfig.date,
+    dateWords: sessionConfig.dateWords,
+    location: sessionConfig.location,
+    facilitator: sessionConfig.facilitator
+  }));
+}
+
+function syncDateUI(){
+  document.getElementById("dateWords").textContent = sessionConfig.dateWords || "—";
+  document.getElementById("dateNumeric").textContent = sessionConfig.date || "—";
+  document.getElementById("cfgDate").value = sessionConfig.date || "";
+  document.getElementById("cfgDateWords").value = sessionConfig.dateWords || "";
   document.getElementById("cfgDateHint").textContent =
-    `Locked to today: ${numeric} (${words}).`;
-  sessionConfig.date = numeric;
+    `Today is ${todayNumeric} (${todayWords}). You can keep it or type another date.`;
+}
+
+function applyTodayDate(){
+  computeToday();
+  sessionConfig.date = todayNumeric;
+  sessionConfig.dateWords = todayWords;
+  syncDateUI();
+  saveLocalSession();
+}
+
+function readDateFromInputs(){
+  const numeric = document.getElementById("cfgDate").value.trim();
+  let words = document.getElementById("cfgDateWords").value.trim();
+  if (numeric && !words) words = wordsFromNumeric(numeric);
+  sessionConfig.date = numeric || todayNumeric;
+  sessionConfig.dateWords = words || todayWords;
+  syncDateUI();
 }
 
 function toast(msg){
@@ -574,16 +656,27 @@ function renderSessionMeta(){
 }
 
 async function loadSessionConfig(){
-  applyAutoDate();
+  computeToday();
+  const local = loadLocalSession();
+  if (local && local.date) {
+    sessionConfig.date = local.date;
+    sessionConfig.dateWords = local.dateWords || wordsFromNumeric(local.date) || todayWords;
+    sessionConfig.location = local.location || "Sasol Club";
+    sessionConfig.facilitator = local.facilitator || "";
+  } else {
+    sessionConfig.date = todayNumeric;
+    sessionConfig.dateWords = todayWords;
+  }
+
   try {
     const r = await apiCall({ action: "config" });
     if (r.success) {
-      sessionConfig.location = r.data.location || "Sasol Club";
-      sessionConfig.facilitator = r.data.facilitator || "";
-      if (r.data.dateNumeric) {
-        document.getElementById("dateNumeric").textContent = r.data.dateNumeric;
-        document.getElementById("dateWords").textContent = r.data.dateWords || todayWords;
-        document.getElementById("cfgDate").value = `${r.data.dateNumeric}  ·  ${r.data.dateWords || ""}`;
+      sessionConfig.location = r.data.location || sessionConfig.location || "Sasol Club";
+      sessionConfig.facilitator = r.data.facilitator || sessionConfig.facilitator || "";
+      // Only fall back to server today if moderator never typed a date
+      if (!local || !local.date) {
+        sessionConfig.date = r.data.dateNumeric || todayNumeric;
+        sessionConfig.dateWords = r.data.dateWords || todayWords;
       }
       setApiStatus(true, "Connected to register sheet");
     } else {
@@ -592,19 +685,52 @@ async function loadSessionConfig(){
   } catch (e) {
     setApiStatus(false, "Cannot reach Apps Script — redeploy Web App");
   }
-  sessionConfig.date = todayNumeric;
+
   document.getElementById("cfgLocation").value = sessionConfig.location || "Sasol Club";
   document.getElementById("cfgFacilitator").value = sessionConfig.facilitator || "";
+  syncDateUI();
   renderSessionMeta();
 }
 
+document.getElementById("useTodayBtn").addEventListener("click", () => {
+  applyTodayDate();
+  toast("Date set to today");
+});
+
+document.getElementById("cfgDate").addEventListener("input", () => {
+  const n = document.getElementById("cfgDate").value.trim();
+  const w = wordsFromNumeric(n);
+  if (w) document.getElementById("cfgDateWords").value = w;
+});
+
+document.getElementById("applyDateBlankBtn").addEventListener("click", async () => {
+  readDateFromInputs();
+  const display = `${sessionConfig.date} (${sessionConfig.dateWords})`;
+  const blanks = cachedRecords.filter(r => !String(r.date || "").trim());
+  if (!blanks.length) { toast("No blank dates to fill"); return; }
+  let ok = 0;
+  for (const r of blanks) {
+    try {
+      const res = await apiCall({
+        action: "update",
+        employeeNumber: r.employeeNumber,
+        date: display
+      });
+      if (res.success) {
+        r.date = display;
+        ok++;
+      }
+    } catch (e) {}
+  }
+  toast(`Filled date on ${ok} row(s)`);
+  renderModList();
+});
+
 document.getElementById("saveCfgBtn").addEventListener("click", async () => {
-  applyAutoDate();
-  sessionConfig = {
-    date: todayNumeric,
-    location: document.getElementById("cfgLocation").value.trim() || "Sasol Club",
-    facilitator: document.getElementById("cfgFacilitator").value.trim()
-  };
+  readDateFromInputs();
+  sessionConfig.location = document.getElementById("cfgLocation").value.trim() || "Sasol Club";
+  sessionConfig.facilitator = document.getElementById("cfgFacilitator").value.trim();
+  saveLocalSession();
   try {
     await apiCall({
       action: "setConfig",
@@ -614,13 +740,13 @@ document.getElementById("saveCfgBtn").addEventListener("click", async () => {
     renderSessionMeta();
     toast("Session details saved");
   } catch (e) {
-    toast("Save failed — check Apps Script deploy");
+    toast("Saved locally — sheet location save failed");
   }
 });
 
 document.getElementById("regForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  applyAutoDate();
+  computeToday();
   const name = document.getElementById("regName").value.trim();
   const empRaw = document.getElementById("regEmp").value.trim();
   const company = document.getElementById("regCompany").value.trim();
@@ -700,29 +826,56 @@ function renderPinDots(){
   document.querySelectorAll("#pinDots .dot").forEach((d, i) => {
     d.classList.toggle("filled", i < pinBuffer.length);
   });
+  const pinType = document.getElementById("pinType");
+  if (pinType && document.activeElement !== pinType) pinType.value = pinBuffer;
+}
+
+function tryUnlockPin(){
+  if (pinBuffer.length !== 4 || pinUnlocked) return;
+  if (pinBuffer === MOD_PIN) {
+    pinUnlocked = true;
+    document.getElementById("pinGate").style.display = "none";
+    document.getElementById("modDashboard").style.display = "block";
+    loadModDashboard();
+  } else {
+    toast("Incorrect PIN");
+    pinBuffer = "";
+    renderPinDots();
+  }
+}
+
+function handlePinKey(k){
+  if (pinUnlocked) return;
+  if (k === "clear") pinBuffer = "";
+  else if (k === "back") pinBuffer = pinBuffer.slice(0, -1);
+  else if (/^\d$/.test(k) && pinBuffer.length < 4) pinBuffer += k;
+  else return;
+  renderPinDots();
+  if (pinBuffer.length === 4) setTimeout(tryUnlockPin, 80);
 }
 
 document.getElementById("pinPad").addEventListener("click", e => {
   const btn = e.target.closest("button");
   if (!btn) return;
-  const k = btn.dataset.k;
-  if (k === "clear") pinBuffer = "";
-  else if (k === "back") pinBuffer = pinBuffer.slice(0, -1);
-  else if (pinBuffer.length < 4) pinBuffer += k;
+  handlePinKey(btn.dataset.k);
+});
+
+document.getElementById("pinType").addEventListener("input", e => {
+  const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+  pinBuffer = digits;
+  e.target.value = digits;
   renderPinDots();
-  if (pinBuffer.length === 4) {
-    setTimeout(() => {
-      if (pinBuffer === MOD_PIN) {
-        document.getElementById("pinGate").style.display = "none";
-        document.getElementById("modDashboard").style.display = "block";
-        loadModDashboard();
-      } else {
-        toast("Incorrect PIN");
-        pinBuffer = "";
-        renderPinDots();
-      }
-    }, 120);
-  }
+  if (pinBuffer.length === 4) setTimeout(tryUnlockPin, 80);
+});
+
+document.addEventListener("keydown", e => {
+  const gate = document.getElementById("pinGate");
+  if (!gate || gate.style.display === "none" || pinUnlocked) return;
+  // Don't double-handle when typing in the PIN input
+  if (document.activeElement && document.activeElement.id === "pinType") return;
+  if (e.key >= "0" && e.key <= "9") { e.preventDefault(); handlePinKey(e.key); }
+  else if (e.key === "Backspace") { e.preventDefault(); handlePinKey("back"); }
+  else if (e.key === "Escape" || e.key === "Delete") { e.preventDefault(); handlePinKey("clear"); }
 });
 
 function filteredRecords(){
@@ -752,62 +905,88 @@ function renderModList(){
     return;
   }
 
-  listEl.innerHTML = records.map(r => {
-    const emp = String(r.employeeNumber);
-    const size = (r.size || "").toString().toUpperCase();
-    return `
-    <div class="mod-entry" data-emp="${esc(emp)}">
-      <div class="name">${esc(r.name)}</div>
-      <div class="meta">${esc(r.company)} · ${esc(emp)} · ${esc(r.date||"")}</div>
-      <div class="edit-grid">
-        <input type="text" class="edit-name" value="${esc(r.name)}" placeholder="Name">
-        <input type="text" class="edit-company" value="${esc(r.company)}" placeholder="Company">
-      </div>
-      <div class="assign-label">Assign size</div>
-      <div class="mod-controls">
-        <button type="button" class="mini-size ${size==="S"?"on":""}" data-size="S">S</button>
-        <button type="button" class="mini-size ${size==="M"?"on":""}" data-size="M">M</button>
-        <button type="button" class="mini-size ${size==="L"?"on":""}" data-size="L">L</button>
-      </div>
-      <div class="row-actions">
-        <button type="button" class="btn btn-ghost save-btn">Save edits</button>
-        <button type="button" class="mini-del">Delete</button>
-      </div>
-    </div>`;
-  }).join("");
+  listEl.innerHTML = `
+  <table class="sheet-table">
+    <thead>
+      <tr>
+        <th class="col-name">Attendee Name and Surname</th>
+        <th class="col-emp">Sasol Control Number</th>
+        <th class="col-co">Company</th>
+        <th class="col-date">Date of Training</th>
+        <th class="col-size">Size</th>
+        <th class="col-act">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${records.map(r => {
+        const emp = String(r.employeeNumber);
+        const size = (r.size || "").toString().toUpperCase();
+        return `
+        <tr data-emp="${esc(emp)}">
+          <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}"></td>
+          <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" readonly></td>
+          <td class="col-co"><input type="text" class="edit-company" value="${esc(r.company)}"></td>
+          <td class="col-date"><input type="text" class="edit-date" value="${esc(r.date || "")}" placeholder="${esc(sessionConfig.date || todayNumeric)}"></td>
+          <td class="col-size">
+            <select class="edit-size">
+              <option value="" ${!size ? "selected" : ""}>—</option>
+              <option value="S" ${size==="S"?"selected":""}>S</option>
+              <option value="M" ${size==="M"?"selected":""}>M</option>
+              <option value="L" ${size==="L"?"selected":""}>L</option>
+            </select>
+          </td>
+          <td class="col-act">
+            <div class="sheet-actions">
+              <button type="button" class="save-row">Save</button>
+              <button type="button" class="del-row">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>`;
 
-  listEl.querySelectorAll(".mod-entry").forEach(entryEl => {
-    const emp = entryEl.dataset.emp;
+  listEl.querySelectorAll("tr[data-emp]").forEach(rowEl => {
+    const emp = rowEl.dataset.emp;
 
-    entryEl.querySelectorAll(".mini-size").forEach(sb => {
-      sb.addEventListener("click", async () => {
-        const size = sb.dataset.size;
-        try {
-          const r = await apiCall({ action: "update", employeeNumber: emp, size });
-          if (!r.success) { toast(r.error || "Update failed"); return; }
-          const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
-          if (rec) rec.size = size;
-          toast("Size saved to sheet");
-          renderModList();
-        } catch (e) { toast("Connection error"); }
-      });
-    });
-
-    entryEl.querySelector(".save-btn").addEventListener("click", async () => {
-      const name = entryEl.querySelector(".edit-name").value.trim();
-      const company = entryEl.querySelector(".edit-company").value.trim();
-      if (!name || !company) { toast("Name and company required"); return; }
+    rowEl.querySelector(".edit-size").addEventListener("change", async (e) => {
+      const size = e.target.value;
+      if (!size) return;
       try {
-        const r = await apiCall({ action: "update", employeeNumber: emp, name, company });
+        const r = await apiCall({ action: "update", employeeNumber: emp, size });
         if (!r.success) { toast(r.error || "Update failed"); return; }
         const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
-        if (rec) { rec.name = name; rec.company = company; }
-        toast("Edits saved to sheet");
+        if (rec) rec.size = size;
+        toast("Size saved");
         renderModList();
-      } catch (e) { toast("Connection error"); }
+      } catch (err) { toast("Connection error"); }
     });
 
-    entryEl.querySelector(".mini-del").addEventListener("click", async () => {
+    rowEl.querySelector(".save-row").addEventListener("click", async () => {
+      const name = rowEl.querySelector(".edit-name").value.trim();
+      const company = rowEl.querySelector(".edit-company").value.trim();
+      const date = rowEl.querySelector(".edit-date").value.trim();
+      const size = rowEl.querySelector(".edit-size").value;
+      if (!name || !company) { toast("Name and company required"); return; }
+      try {
+        const payload = { action: "update", employeeNumber: emp, name, company };
+        if (date) payload.date = date;
+        if (size) payload.size = size;
+        const r = await apiCall(payload);
+        if (!r.success) { toast(r.error || "Update failed"); return; }
+        const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
+        if (rec) {
+          rec.name = name;
+          rec.company = company;
+          if (date) rec.date = date;
+          if (size) rec.size = size;
+        }
+        toast("Row saved to sheet");
+        renderModList();
+      } catch (err) { toast("Connection error"); }
+    });
+
+    rowEl.querySelector(".del-row").addEventListener("click", async () => {
       if (!confirm("Remove this attendee from the spreadsheet?")) return;
       try {
         const r = await apiCall({ action: "delete", employeeNumber: emp });
@@ -815,13 +994,12 @@ function renderModList(){
         cachedRecords = cachedRecords.filter(x => String(x.employeeNumber) !== emp);
         toast("Deleted from sheet");
         renderModList();
-      } catch (e) { toast("Connection error"); }
+      } catch (err) { toast("Connection error"); }
     });
   });
 }
 
 async function loadModDashboard(){
-  applyAutoDate();
   const listEl = document.getElementById("modList");
   listEl.innerHTML = '<div class="spinner"></div>';
   try {
@@ -847,15 +1025,15 @@ document.querySelectorAll(".filt").forEach(btn => {
 });
 
 document.getElementById("exportBtn").addEventListener("click", () => {
-  applyAutoDate();
+  readDateFromInputs();
   const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
-  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date || todayNumeric, r.size || ""]));
+  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date || sessionConfig.date || todayNumeric, r.size || ""]));
   const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `respirator-fitment-attendance-${todayNumeric.replace(/\//g,"-")}.csv`;
+  a.download = `respirator-fitment-attendance-${(sessionConfig.date || todayNumeric).replace(/\//g,"-")}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   toast("CSV downloaded");
@@ -869,8 +1047,12 @@ document.getElementById("genQrBtn").addEventListener("click", () => {
   qrImg.style.display = "inline-block";
 });
 
-applyAutoDate();
+computeToday();
 loadSessionConfig();
+setTimeout(() => {
+  const pinType = document.getElementById("pinType");
+  if (pinType) pinType.focus();
+}, 300);
 </script>
 </body>
 </html>
