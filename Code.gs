@@ -264,7 +264,7 @@ function handleRegister_(name, employeeNumber, company, size) {
   };
 }
 
-function handleUpdate_(employeeNumber, name, company, date, size) {
+function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNumber) {
   employeeNumber = empStr_(employeeNumber);
   const found = findRowByEmployee_(employeeNumber);
   if (!found) return { success: false, error: 'Employee not found' };
@@ -273,6 +273,14 @@ function handleUpdate_(employeeNumber, name, company, date, size) {
   const row = found.row;
   const map = found.map;
 
+  if (newEmployeeNumber !== undefined && newEmployeeNumber !== null && String(newEmployeeNumber).trim() !== '') {
+    const nextEmp = empStr_(newEmployeeNumber);
+    if (nextEmp !== employeeNumber) {
+      const clash = findRowByEmployee_(nextEmp);
+      if (clash) return { success: false, error: 'That control number already exists' };
+      sh.getRange(row, map.empCol + 1).setValue(nextEmp);
+    }
+  }
   if (name !== undefined && name !== null && String(name).length) sh.getRange(row, map.nameCol + 1).setValue(String(name).trim());
   if (company !== undefined && company !== null && String(company).length) sh.getRange(row, map.companyCol + 1).setValue(String(company).trim());
   if (date !== undefined && date !== null && String(date).length) sh.getRange(row, map.dateCol + 1).setValue(String(date).trim());
@@ -329,7 +337,7 @@ function doGet(e) {
       return jsonOut_(handleRegister_(p.name, p.employeeNumber, p.company, p.size));
     }
     if (action === 'update') {
-      return jsonOut_(handleUpdate_(p.employeeNumber, p.name, p.company, p.date, p.size));
+      return jsonOut_(handleUpdate_(p.employeeNumber, p.name, p.company, p.date, p.size, p.newEmployeeNumber));
     }
     if (action === 'delete') {
       return jsonOut_(handleDelete_(p.employeeNumber));
@@ -367,7 +375,7 @@ function doPost(e) {
       return jsonOut_(handleRegister_(body.name, body.employeeNumber, body.company, body.size));
     }
     if (action === 'update') {
-      return jsonOut_(handleUpdate_(body.employeeNumber, body.name, body.company, body.date, body.size));
+      return jsonOut_(handleUpdate_(body.employeeNumber, body.name, body.company, body.date, body.size, body.newEmployeeNumber));
     }
     if (action === 'delete') {
       return jsonOut_(handleDelete_(body.employeeNumber));

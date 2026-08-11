@@ -148,7 +148,7 @@
     box-shadow: 0 0 0 3px rgba(240,180,41,.18);
   }
   input[type=text]::placeholder, input[type=password]::placeholder { color: var(--faint); }
-  input[readonly] { opacity: .85; }
+  input[readonly] { opacity: .9; }
   .hint { font-size: .72rem; color: var(--faint); margin-top: 7px; line-height: 1.4; }
 
   .btn {
@@ -396,7 +396,7 @@
           </div>
           <div class="field">
             <label>Sasol Control Number</label>
-            <input type="text" id="regEmp" placeholder="e.g. 4471029" inputmode="numeric" autocomplete="off" required>
+            <input type="text" id="regEmp" placeholder="e.g. 4471029" inputmode="text" autocomplete="off" required>
             <div class="hint">Duplicates blocked by control number. Date stamps automatically.</div>
           </div>
           <div class="field">
@@ -997,7 +997,7 @@ function renderModList(){
         return `
         <tr data-emp="${esc(emp)}">
           <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}"></td>
-          <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" readonly></td>
+          <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" inputmode="text" autocomplete="off"></td>
           <td class="col-co"><input type="text" class="edit-company" value="${esc(r.company)}"></td>
           <td class="col-date"><input type="text" class="edit-date" value="${esc(toSheetDate(r.date) || "")}" placeholder="${esc(sessionSheetDate())}"></td>
           <td class="col-size">
@@ -1040,11 +1040,14 @@ function renderModList(){
     rowEl.querySelector(".save-row").addEventListener("click", async () => {
       const name = rowEl.querySelector(".edit-name").value.trim();
       const company = rowEl.querySelector(".edit-company").value.trim();
+      const newEmp = rowEl.querySelector(".edit-emp").value.trim();
       const date = toSheetDate(rowEl.querySelector(".edit-date").value.trim());
       const size = rowEl.querySelector(".edit-size").value;
       if (!name || !company) { toast("Name and company required"); return; }
+      if (!newEmp) { toast("Control number required"); return; }
       try {
         const payload = { action: "update", employeeNumber: emp, name, company };
+        if (newEmp !== emp) payload.newEmployeeNumber = newEmp;
         if (date) payload.date = date;
         if (size) payload.size = size;
         const r = await apiCall(payload);
@@ -1053,6 +1056,7 @@ function renderModList(){
         if (rec) {
           rec.name = name;
           rec.company = company;
+          rec.employeeNumber = newEmp;
           if (date) rec.date = date;
           if (size) rec.size = size;
         }
