@@ -2,136 +2,442 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Respirator Fitment Training — Attendance Register</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b1f2a">
+<title>Respirator Fitment — Attendance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0a0c11; --bg2:#0d1017; --surface:#141822; --surface2:#1b202c;
-    --border:#262d3d; --border-soft:#1e2430; --text:#eef1f6; --muted:#8891a3; --muted2:#5f6779;
-    --accent:#2dd4bf; --accent-dim:#2dd4bf22; --amber:#f5b942; --amber-dim:#f5b94222;
-    --red:#f2555a; --red-dim:#f2555a1c; --green:#3ddc84; --green-dim:#3ddc8422; --radius:16px;
+  :root {
+    --ink: #07141c;
+    --deep: #0b1f2a;
+    --panel: rgba(255,255,255,.06);
+    --panel-strong: rgba(255,255,255,.1);
+    --line: rgba(255,255,255,.12);
+    --text: #f4f7f5;
+    --soft: #a8b8c0;
+    --faint: #6f8490;
+    --safety: #f0b429;
+    --safety-ink: #2a1c00;
+    --mint: #5dcea3;
+    --coral: #ff6b6b;
+    --glow: rgba(240,180,41,.22);
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;}
-  body{
-    font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
-    background:radial-gradient(circle at 15% 0%, #1a2033 0%, transparent 45%),
-      radial-gradient(circle at 100% 20%, #14211e 0%, transparent 40%), var(--bg);
-    color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased;
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(ellipse 90% 55% at 10% -10%, rgba(240,180,41,.18), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 100% 5%, rgba(93,206,163,.12), transparent 50%),
+      linear-gradient(165deg, #0e2a38 0%, var(--deep) 40%, #071018 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
   }
-  .mono{font-family:'JetBrains Mono',monospace;}
-  #app{max-width:560px;margin:0 auto;padding:0 0 40px;}
-  header.top{padding:28px 20px 18px;text-align:center;position:relative;}
-  .brand{display:flex;align-items:center;justify-content:center;gap:9px;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px;}
-  .brand i{color:var(--accent);font-size:.85rem;}
-  h1{font-size:1.5rem;font-weight:800;margin:0 0 6px;letter-spacing:-0.01em;line-height:1.25;}
-  .subtitle{color:var(--muted);font-size:.85rem;margin:0 0 16px;}
-  .session-bar{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:8px;}
-  .chip{background:var(--surface);border:1px solid var(--border-soft);padding:6px 13px;border-radius:100px;font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:6px;}
-  .chip i{color:var(--accent);font-size:.72rem;}
-  .chip b{color:var(--text);font-weight:600;}
-  nav.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border-soft);border-radius:100px;padding:5px;margin:0 20px 22px;}
-  nav.tabs button{flex:1;border:none;background:transparent;color:var(--muted);padding:11px 6px;border-radius:100px;font-family:inherit;font-weight:700;font-size:.78rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
-  nav.tabs button i{font-size:.78rem;}
-  nav.tabs button.active{background:var(--accent);color:#06231d;}
-  main{padding:0 20px;}
-  section{display:none;}
-  section.active{display:block;animation:fade .25s ease;}
-  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-  .card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:22px;}
-  .card + .card{margin-top:16px;}
-  label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;}
-  .field{margin-bottom:18px;}
-  input[type=text]{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:14px 15px;border-radius:11px;font-size:1rem;font-family:inherit;transition:border-color .15s;}
-  input[type=text]:focus{outline:none;border-color:var(--accent);}
-  input[type=text]::placeholder{color:var(--muted2);}
-  .hint{font-size:.72rem;color:var(--muted2);margin-top:6px;}
-  .size-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-  .size-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:16px 0;border-radius:11px;font-weight:800;font-size:1.05rem;cursor:pointer;transition:all .15s;font-family:inherit;}
-  .size-btn span{display:block;font-size:.62rem;font-weight:600;letter-spacing:.04em;margin-top:2px;color:var(--muted2);}
-  .size-btn.selected{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-  .size-btn.selected span{color:var(--accent);opacity:.8;}
-  .btn{width:100%;border:none;padding:16px;border-radius:12px;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:9px;}
-  .btn-primary{background:var(--accent);color:#06231d;margin-top:6px;}
-  .btn-primary:active{transform:scale(.98);}
-  .btn-primary:disabled{opacity:.45;cursor:default;}
-  .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
-  .btn-small{padding:9px 14px;font-size:.78rem;width:auto;}
-  .result-box{border-radius:12px;padding:16px 17px;margin-top:16px;display:flex;gap:12px;align-items:flex-start;}
-  .result-box i{font-size:1.1rem;margin-top:1px;}
-  .result-box.success{background:var(--green-dim);border:1px solid #3ddc843a;}
-  .result-box.success i{color:var(--green);}
-  .result-box.warn{background:var(--amber-dim);border:1px solid #f5b9423a;}
-  .result-box.warn i{color:var(--amber);}
-  .result-box.error{background:var(--red-dim);border:1px solid #f2555a3a;}
-  .result-box.error i{color:var(--red);}
-  .result-box .rtitle{font-weight:800;font-size:.9rem;margin-bottom:3px;}
-  .result-box .rbody{font-size:.82rem;color:var(--muted);line-height:1.5;}
-  .result-box .rbody b{color:var(--text);}
-  .search-row{display:flex;gap:10px;}
-  .search-row input{flex:1;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;}
-  .search-row .btn{width:auto;padding:14px 20px;}
-  .entry{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-soft);}
-  .entry:last-child{border-bottom:none;}
-  .entry .name{font-weight:700;font-size:.92rem;}
-  .entry .meta{font-size:.75rem;color:var(--muted);margin-top:2px;}
-  .size-tag{font-size:.72rem;font-weight:800;padding:5px 11px;border-radius:100px;background:var(--accent-dim);color:var(--accent);}
-  .empty{text-align:center;color:var(--muted2);font-size:.85rem;padding:30px 10px;}
-  .empty i{font-size:1.6rem;display:block;margin-bottom:10px;opacity:.5;}
-  .pin-dots{display:flex;justify-content:center;gap:12px;margin:22px 0 26px;}
-  .pin-dots .dot{width:13px;height:13px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);transition:all .15s;}
-  .pin-dots .dot.filled{background:var(--accent);border-color:var(--accent);}
-  .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-  .pin-pad button{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:18px 0;border-radius:12px;font-size:1.15rem;font-weight:700;font-family:inherit;cursor:pointer;}
-  .pin-pad button:active{background:var(--border);}
-  .pin-pad button.clear{color:var(--muted);font-size:.75rem;font-weight:700;}
-  .mod-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-  .mod-header h2{font-size:1rem;margin:0;}
-  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-  .stat{background:var(--surface2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;}
-  .stat .num{font-size:1.5rem;font-weight:800;color:var(--accent);}
-  .stat .lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
-  .mod-entry{border-bottom:1px solid var(--border-soft);padding:13px 0;}
-  .mod-entry:last-child{border-bottom:none;}
-  .mod-entry .name{font-weight:700;font-size:.9rem;}
-  .mod-entry .meta{font-size:.73rem;color:var(--muted);margin-top:2px;}
-  .mod-controls{display:flex;gap:6px;margin-top:10px;}
-  .mini-size{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:7px 0;border-radius:8px;font-size:.72rem;font-weight:800;cursor:pointer;font-family:inherit;}
-  .mini-size.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-  .mini-del{background:var(--red-dim);border:1px solid #f2555a3a;color:var(--red);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:.72rem;}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:100px;font-size:.82rem;font-weight:600;opacity:0;transition:all .25s;pointer-events:none;z-index:999;display:flex;align-items:center;gap:8px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .toast i{color:var(--accent);}
-  .spinner{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .qr-box{text-align:center;padding:20px 0 4px;}
-  .qr-box img{width:170px;height:170px;border-radius:12px;background:#fff;padding:10px;}
-  .link-row{display:flex;gap:8px;margin-top:14px;}
-  .link-row input{font-size:.78rem;font-family:'JetBrains Mono',monospace;}
-  .sec-label{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .35;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+  }
+  #app { max-width: 440px; margin: 0 auto; padding: 0 0 calc(28px + env(safe-area-inset-bottom)); position: relative; z-index: 1; }
+
+  .hero {
+    padding: 36px 22px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    right: -40px; top: -30px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--glow), transparent 70%);
+    animation: pulse 4.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: .7; }
+    50% { transform: scale(1.15); opacity: 1; }
+  }
+  .doc-ref {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--safety);
+    margin-bottom: 18px;
+  }
+  .doc-ref span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--safety);
+    box-shadow: 0 0 12px var(--safety);
+    animation: blink 2.2s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.85rem, 7vw, 2.35rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 0 10px;
+    letter-spacing: -.02em;
+    max-width: 12ch;
+  }
+  .hero p.lede {
+    margin: 0;
+    color: var(--soft);
+    font-size: .95rem;
+    line-height: 1.45;
+    max-width: 28ch;
+  }
+
+  .date-banner {
+    margin: 8px 22px 20px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(240,180,41,.16), rgba(93,206,163,.08));
+    border: 1px solid rgba(240,180,41,.28);
+    display: grid;
+    gap: 4px;
+    animation: rise .55s ease both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  .date-banner .words {
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .date-banner .numeric {
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: var(--safety);
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 10px;
+  }
+  .meta-pill {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--soft);
+    background: rgba(0,0,0,.22);
+    border: 1px solid var(--line);
+    padding: 5px 10px;
+    border-radius: 999px;
+  }
+
+  nav.tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 0 22px 22px;
+    padding: 5px;
+    background: rgba(0,0,0,.28);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+  }
+  nav.tabs button {
+    border: none;
+    background: transparent;
+    color: var(--faint);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 12px 4px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: color .2s, background .2s, transform .2s;
+  }
+  nav.tabs button.active {
+    background: var(--safety);
+    color: var(--safety-ink);
+    box-shadow: 0 8px 20px rgba(240,180,41,.25);
+  }
+
+  main { padding: 0 22px; }
+  section { display: none; }
+  section.active { display: block; animation: rise .35s ease both; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 22px;
+    backdrop-filter: blur(14px);
+  }
+  .panel + .panel { margin-top: 14px; }
+
+  label {
+    display: block;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--soft);
+    margin: 0 0 8px;
+  }
+  .field { margin-bottom: 16px; }
+  .field:last-of-type { margin-bottom: 8px; }
+  input[type=text] {
+    width: 100%;
+    background: rgba(0,0,0,.28);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 14px 15px;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus {
+    outline: none;
+    border-color: var(--safety);
+    box-shadow: 0 0 0 3px rgba(240,180,41,.18);
+  }
+  input[type=text]::placeholder { color: var(--faint); }
+  input[readonly] { opacity: .85; cursor: default; }
+  .hint { font-size: .74rem; color: var(--faint); margin-top: 7px; line-height: 1.4; }
+
+  .size-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .size-btn {
+    background: rgba(0,0,0,.28);
+    border: 1px solid var(--line);
+    color: var(--soft);
+    padding: 16px 0 14px;
+    border-radius: 16px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform .15s, border-color .15s, background .15s, color .15s;
+  }
+  .size-btn small {
+    display: block;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    margin-top: 4px;
+    color: var(--faint);
+  }
+  .size-btn.selected {
+    background: rgba(240,180,41,.16);
+    border-color: var(--safety);
+    color: var(--safety);
+    transform: translateY(-2px);
+  }
+  .size-btn.selected small { color: var(--safety); }
+
+  .btn {
+    width: 100%;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: .95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform .12s, opacity .15s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; }
+  .btn-primary {
+    background: linear-gradient(135deg, #ffd45a, var(--safety));
+    color: var(--safety-ink);
+    margin-top: 10px;
+    box-shadow: 0 12px 28px rgba(240,180,41,.28);
+  }
+  .btn-ghost {
+    background: var(--panel-strong);
+    color: var(--text);
+    border: 1px solid var(--line);
+  }
+  .btn-small { width: auto; padding: 10px 14px; font-size: .78rem; }
+
+  .result {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: rise .3s ease both;
+  }
+  .result .mark {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: .85rem; font-weight: 800; flex-shrink: 0;
+  }
+  .result .rtitle { font-weight: 800; font-size: .92rem; margin-bottom: 3px; }
+  .result .rbody { font-size: .82rem; color: var(--soft); line-height: 1.45; }
+  .result .rbody b { color: var(--text); }
+  .result.ok { background: rgba(93,206,163,.12); border: 1px solid rgba(93,206,163,.3); }
+  .result.ok .mark { background: rgba(93,206,163,.2); color: var(--mint); }
+  .result.warn { background: rgba(240,180,41,.12); border: 1px solid rgba(240,180,41,.3); }
+  .result.warn .mark { background: rgba(240,180,41,.2); color: var(--safety); }
+  .result.err { background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.3); }
+  .result.err .mark { background: rgba(255,107,107,.2); color: var(--coral); }
+
+  .search-row { display: flex; gap: 10px; }
+  .search-row input { flex: 1; letter-spacing: .18em; font-weight: 700; text-align: center; }
+  .search-row .btn { width: auto; padding: 0 18px; }
+
+  .entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .entry:last-child { border-bottom: none; }
+  .entry .name { font-weight: 700; }
+  .entry .meta { font-size: .75rem; color: var(--faint); margin-top: 3px; }
+  .size-tag {
+    font-size: .75rem; font-weight: 800;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(240,180,41,.15); color: var(--safety);
+  }
+
+  .empty { text-align: center; color: var(--faint); font-size: .88rem; padding: 28px 8px; }
+  .empty .glyph { font-size: 1.6rem; display: block; margin-bottom: 8px; opacity: .55; }
+
+  .pin-wrap { text-align: center; padding: 8px 0 4px; }
+  .pin-wrap .lock {
+    width: 52px; height: 52px; margin: 0 auto 12px;
+    border-radius: 16px;
+    display: grid; place-items: center;
+    background: rgba(240,180,41,.12);
+    border: 1px solid rgba(240,180,41,.25);
+    color: var(--safety); font-size: 1.2rem; font-weight: 800;
+  }
+  .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 18px 0 22px; }
+  .pin-dots .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: rgba(0,0,0,.28); border: 1px solid var(--line);
+    transition: background .15s, border-color .15s, transform .15s;
+  }
+  .pin-dots .dot.filled {
+    background: var(--safety); border-color: var(--safety);
+    transform: scale(1.15);
+  }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-pad button {
+    background: rgba(0,0,0,.28);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 18px 0;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pin-pad button:active { background: var(--panel-strong); }
+  .pin-pad button.clear { color: var(--soft); font-size: .72rem; }
+
+  .sec-label {
+    font-size: .7rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: var(--soft); margin-bottom: 14px;
+  }
+  .mod-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .mod-header h2 { margin: 0; font-size: 1rem; font-family: 'Fraunces', serif; }
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat {
+    background: rgba(0,0,0,.22);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .stat .num { font-family: 'Fraunces', serif; font-size: 1.55rem; font-weight: 700; color: var(--safety); }
+  .stat .lbl { font-size: .68rem; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+  .mod-entry { border-bottom: 1px solid var(--line); padding: 13px 0; }
+  .mod-entry:last-child { border-bottom: none; }
+  .mod-entry .name { font-weight: 700; }
+  .mod-entry .meta { font-size: .73rem; color: var(--faint); margin-top: 2px; }
+  .mod-controls { display: flex; gap: 6px; margin-top: 10px; }
+  .mini-size {
+    flex: 1; background: rgba(0,0,0,.28); border: 1px solid var(--line);
+    color: var(--soft); padding: 8px 0; border-radius: 10px;
+    font-size: .72rem; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
+  .mini-size.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
+  .mini-del {
+    background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.3);
+    color: var(--coral); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: .72rem; font-weight: 700;
+  }
+
+  .qr-box { text-align: center; padding: 8px 0 0; }
+  .qr-box img { width: 168px; height: 168px; border-radius: 14px; background: #fff; padding: 10px; }
+  .link-row { display: flex; gap: 8px; margin-top: 14px; }
+  .link-row input { font-size: .78rem; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: #122833; border: 1px solid var(--line);
+    color: var(--text); padding: 12px 18px; border-radius: 999px;
+    font-size: .82rem; font-weight: 600; opacity: 0;
+    transition: all .25s; pointer-events: none; z-index: 999;
+    box-shadow: 0 14px 36px rgba(0,0,0,.4);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .spinner {
+    width: 22px; height: 22px; margin: 22px auto;
+    border: 2.5px solid var(--line); border-top-color: var(--safety);
+    border-radius: 50%; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <div id="app">
-  <header class="top">
-    <div class="brand"><i class="fa-solid fa-shield-halved"></i> GIJ OHES · GP-005-T-001</div>
+  <header class="hero">
+    <div class="doc-ref"><span></span> GIJ OHES · GP-005-T-001</div>
     <h1>Respirator Fitment Training</h1>
-    <p class="subtitle">Scan in, we'll take it from there.</p>
-    <div class="session-bar" id="sessionBar"></div>
+    <p class="lede">Scan the QR, fill your details once. Control numbers keep the register clean.</p>
   </header>
 
+  <div class="date-banner" id="dateBanner">
+    <div class="words" id="dateWords">—</div>
+    <div class="numeric" id="dateNumeric">—</div>
+    <div class="meta-row" id="sessionMeta"></div>
+  </div>
+
   <nav class="tabs">
-    <button class="tab-btn active" data-tab="register"><i class="fa-solid fa-pen-to-square"></i>Register</button>
-    <button class="tab-btn" data-tab="find"><i class="fa-solid fa-magnifying-glass"></i>Find Me</button>
-    <button class="tab-btn" data-tab="mod"><i class="fa-solid fa-lock"></i>Moderator</button>
+    <button class="tab-btn active" data-tab="register">Register</button>
+    <button class="tab-btn" data-tab="find">Find Me</button>
+    <button class="tab-btn" data-tab="mod">Moderator</button>
   </nav>
 
   <main>
     <section id="tab-register" class="active">
-      <div class="card">
+      <div class="panel">
         <div class="field">
           <label>Initials &amp; Surname</label>
           <input type="text" id="regName" placeholder="e.g. T. Malepe" autocomplete="name">
@@ -139,41 +445,41 @@
         <div class="field">
           <label>Sasol Control Number</label>
           <input type="text" id="regEmp" placeholder="e.g. 4471029" inputmode="numeric" autocomplete="off">
-          <div class="hint">This is what we use to check you in — never your name.</div>
+          <div class="hint">Duplicates are blocked by control number — same names are fine.</div>
         </div>
         <div class="field">
           <label>Company</label>
           <input type="text" id="regCompany" placeholder="e.g. Gijima OHES" autocomplete="organization">
         </div>
-        <div class="field" style="margin-bottom:8px;">
+        <div class="field">
           <label>Respirator Size</label>
           <div class="size-row" id="sizeRow">
-            <button type="button" class="size-btn" data-size="S">S<span>SMALL</span></button>
-            <button type="button" class="size-btn" data-size="M">M<span>MEDIUM</span></button>
-            <button type="button" class="size-btn" data-size="L">L<span>LARGE</span></button>
+            <button type="button" class="size-btn" data-size="S">S<small>SMALL</small></button>
+            <button type="button" class="size-btn" data-size="M">M<small>MEDIUM</small></button>
+            <button type="button" class="size-btn" data-size="L">L<small>LARGE</small></button>
           </div>
         </div>
-        <button class="btn btn-primary" id="submitBtn"><i class="fa-solid fa-check"></i> Sign Me In</button>
+        <button class="btn btn-primary" id="submitBtn">Sign Me In</button>
         <div id="regResult"></div>
       </div>
     </section>
 
     <section id="tab-find">
-      <div class="card">
+      <div class="panel">
         <label>Last 4 Digits of Control Number</label>
         <div class="search-row">
-          <input type="text" id="findInput" placeholder="e.g. 1029" inputmode="numeric" maxlength="4">
-          <button class="btn btn-primary" id="findBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <input type="text" id="findInput" placeholder="1029" inputmode="numeric" maxlength="4">
+          <button class="btn btn-primary" id="findBtn">Find</button>
         </div>
         <div id="findResults"></div>
       </div>
     </section>
 
     <section id="tab-mod">
-      <div class="card" id="pinGate">
-        <div style="text-align:center;padding:10px 0 4px;">
-          <i class="fa-solid fa-lock" style="font-size:1.4rem;color:var(--muted);"></i>
-          <p style="color:var(--muted);font-size:.85rem;margin:14px 0 0;">Enter moderator PIN</p>
+      <div class="panel" id="pinGate">
+        <div class="pin-wrap">
+          <div class="lock">PIN</div>
+          <p style="color:var(--soft);font-size:.9rem;margin:0;">Moderator access</p>
         </div>
         <div class="pin-dots" id="pinDots">
           <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
@@ -184,15 +490,16 @@
           <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
           <button class="clear" data-k="clear">CLEAR</button><button data-k="0">0</button><button data-k="back">⌫</button>
         </div>
-        <p style="text-align:center;color:var(--muted2);font-size:.72rem;margin-top:16px;">Soft gate for convenience, not real security — the PIN lives in this page's source code.</p>
+        <p style="text-align:center;color:var(--faint);font-size:.72rem;margin:16px 0 0;">Soft gate only — PIN is in the page source (default 2026).</p>
       </div>
 
       <div id="modDashboard" style="display:none;">
-        <div class="card">
+        <div class="panel">
           <div class="sec-label">Session Details</div>
           <div class="field">
-            <label>Date of Training</label>
-            <input type="text" id="cfgDate" placeholder="e.g. 12 August 2026">
+            <label>Date of Training (auto)</label>
+            <input type="text" id="cfgDate" readonly>
+            <div class="hint" id="cfgDateHint">Always today’s date — DD/MM/YYYY and written in words.</div>
           </div>
           <div class="field">
             <label>Meeting Held At</label>
@@ -202,203 +509,262 @@
             <label>Facilitator / Trainer</label>
             <input type="text" id="cfgFacilitator" placeholder="e.g. D. Kruger">
           </div>
-          <button class="btn btn-ghost btn-small" id="saveCfgBtn" style="margin-top:14px;"><i class="fa-solid fa-floppy-disk"></i> Save Session Details</button>
+          <button class="btn btn-ghost btn-small" id="saveCfgBtn" style="margin-top:14px;">Save Session Details</button>
         </div>
 
-        <div class="card">
+        <div class="panel">
           <div class="qr-box">
             <div class="sec-label" style="text-align:center;">Registration Link / QR</div>
-            <p style="color:var(--muted2);font-size:.75rem;margin:0 0 14px;">Paste this page's GitHub Pages URL once it's live, then screenshot the QR for printing.</p>
+            <p style="color:var(--faint);font-size:.75rem;margin:0 0 12px;">Uses this page’s URL by default. Generate a QR to print.</p>
             <img id="qrImg" src="" alt="QR code" style="display:none;">
           </div>
           <div class="link-row">
-            <input type="text" id="linkInput" placeholder="https://yourname.github.io/attendance/">
+            <input type="text" id="linkInput" placeholder="https://play0ground.github.io/Sasol/">
             <button class="btn btn-ghost btn-small" id="genQrBtn">Generate</button>
           </div>
         </div>
 
-        <div class="card">
+        <div class="panel">
           <div class="mod-header">
             <h2>All Attendees</h2>
-            <button class="btn btn-ghost btn-small" id="refreshBtn"><i class="fa-solid fa-rotate"></i></button>
+            <button class="btn btn-ghost btn-small" id="refreshBtn">Refresh</button>
           </div>
           <div class="stat-row">
             <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Registered</div></div>
             <div class="stat"><div class="num" id="statToday">—</div><div class="lbl">Sizes S / M / L</div></div>
           </div>
           <div id="modList"></div>
-          <button class="btn btn-ghost" id="exportBtn" style="margin-top:14px;"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+          <button class="btn btn-ghost" id="exportBtn" style="margin-top:14px;">Export CSV</button>
         </div>
       </div>
     </section>
   </main>
 </div>
 
-<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="toastMsg"></span></div>
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
 
 <script>
-// ⚠️ Point this at your deployed Apps Script Web App URL
 const API_URL = "https://script.google.com/macros/s/AKfycbxp2RyVJLAgsi13190nIHNk4C8WJThjEVbBmAL1uBOtGav1z_20cnbyaVfHtANwdfzMCw/exec";
 const MOD_PIN = "2026";
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 let selectedSize = null;
 let pinBuffer = "";
-let sessionConfig = { date:"", location:"Sasol Club", facilitator:"" };
+let sessionConfig = { date: "", location: "Sasol Club", facilitator: "" };
+let todayNumeric = "";
+let todayWords = "";
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+
+function computeToday(){
+  const now = new Date();
+  const d = now.getDate();
+  const m = now.getMonth();
+  const y = now.getFullYear();
+  todayNumeric = `${pad2(d)}/${pad2(m+1)}/${y}`;
+  todayWords = `${d} ${MONTHS[m]} ${y}`;
+  return { numeric: todayNumeric, words: todayWords };
+}
+
+function applyAutoDate(){
+  const { numeric, words } = computeToday();
+  document.getElementById("dateWords").textContent = words;
+  document.getElementById("dateNumeric").textContent = numeric;
+  const cfg = document.getElementById("cfgDate");
+  if (cfg) cfg.value = `${numeric}  ·  ${words}`;
+  document.getElementById("cfgDateHint").textContent =
+    `Locked to today: ${numeric} (${words}). Updates automatically each day.`;
+  sessionConfig.date = numeric;
+}
 
 function toast(msg){
-  const t=document.getElementById('toast');
-  document.getElementById('toastMsg').textContent=msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
+  const t = document.getElementById("toast");
+  document.getElementById("toastMsg").textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
 }
-function esc(s){ return (s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function esc(s){
+  return (s||"").toString().replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
 
 async function apiGet(params){
-  const url = API_URL + '?' + new URLSearchParams(params).toString();
+  const url = API_URL + "?" + new URLSearchParams(params).toString();
   const res = await fetch(url);
   return res.json();
 }
+
 async function apiPost(body){
   const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(body)
   });
   return res.json();
 }
 
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
   });
 });
 
+function renderSessionMeta(){
+  const loc = sessionConfig.location || "Location not set";
+  const fac = sessionConfig.facilitator;
+  document.getElementById("sessionMeta").innerHTML =
+    `<span class="meta-pill">${esc(loc)}</span>` +
+    (fac ? `<span class="meta-pill">${esc(fac)}</span>` : "");
+}
+
 async function loadSessionConfig(){
-  try{
-    const r = await apiGet({ action:'config' });
-    if(r.success) sessionConfig = r.data;
-  }catch(e){}
-  renderSessionBar();
-  document.getElementById('cfgDate').value = sessionConfig.date || '';
-  document.getElementById('cfgLocation').value = sessionConfig.location || 'Sasol Club';
-  document.getElementById('cfgFacilitator').value = sessionConfig.facilitator || '';
+  applyAutoDate();
+  try {
+    const r = await apiGet({ action: "config" });
+    if (r.success) {
+      sessionConfig.location = r.data.location || "Sasol Club";
+      sessionConfig.facilitator = r.data.facilitator || "";
+    }
+  } catch (e) {}
+  sessionConfig.date = todayNumeric;
+  document.getElementById("cfgLocation").value = sessionConfig.location || "Sasol Club";
+  document.getElementById("cfgFacilitator").value = sessionConfig.facilitator || "";
+  renderSessionMeta();
+  // Keep backend date aligned with today
+  try {
+    await apiPost({
+      action: "setConfig",
+      date: todayNumeric,
+      location: sessionConfig.location,
+      facilitator: sessionConfig.facilitator
+    });
+  } catch (e) {}
 }
-function renderSessionBar(){
-  document.getElementById('sessionBar').innerHTML = `
-    <div class="chip"><i class="fa-regular fa-calendar"></i><b>${esc(sessionConfig.date||'Date not set')}</b></div>
-    <div class="chip"><i class="fa-solid fa-location-dot"></i><b>${esc(sessionConfig.location||'Location not set')}</b></div>
-  `;
-}
-document.getElementById('saveCfgBtn').addEventListener('click', async ()=>{
+
+document.getElementById("saveCfgBtn").addEventListener("click", async () => {
+  applyAutoDate();
   sessionConfig = {
-    date: document.getElementById('cfgDate').value.trim(),
-    location: document.getElementById('cfgLocation').value.trim() || 'Sasol Club',
-    facilitator: document.getElementById('cfgFacilitator').value.trim()
+    date: todayNumeric,
+    location: document.getElementById("cfgLocation").value.trim() || "Sasol Club",
+    facilitator: document.getElementById("cfgFacilitator").value.trim()
   };
-  await apiPost({ action:'setConfig', ...sessionConfig });
-  renderSessionBar();
-  toast('Session details saved');
+  await apiPost({ action: "setConfig", ...sessionConfig });
+  renderSessionMeta();
+  toast("Session details saved");
 });
 
-document.querySelectorAll('.size-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('selected'));
-    btn.classList.add('selected');
+document.querySelectorAll(".size-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
     selectedSize = btn.dataset.size;
   });
 });
 
-document.getElementById('submitBtn').addEventListener('click', async ()=>{
-  const name = document.getElementById('regName').value.trim();
-  const empRaw = document.getElementById('regEmp').value.trim();
-  const company = document.getElementById('regCompany').value.trim();
-  const resultDiv = document.getElementById('regResult');
-  resultDiv.innerHTML = '';
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  applyAutoDate();
+  const name = document.getElementById("regName").value.trim();
+  const empRaw = document.getElementById("regEmp").value.trim();
+  const company = document.getElementById("regCompany").value.trim();
+  const resultDiv = document.getElementById("regResult");
+  resultDiv.innerHTML = "";
 
-  if(!name || !empRaw || !company || !selectedSize){
-    resultDiv.innerHTML = `<div class="result-box error"><i class="fa-solid fa-triangle-exclamation"></i><div><div class="rtitle">Missing information</div><div class="rbody">Please fill in your name, control number, company, and pick a size.</div></div></div>`;
+  if (!name || !empRaw || !company || !selectedSize) {
+    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in name, control number, company, and pick a size.</div></div></div>`;
     return;
   }
 
-  const submitBtn = document.getElementById('submitBtn');
+  const submitBtn = document.getElementById("submitBtn");
   submitBtn.disabled = true;
-  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+  submitBtn.textContent = "Submitting…";
 
-  try{
-    const r = await apiPost({ action:'register', name, employeeNumber: empRaw, company, date: sessionConfig.date, size: selectedSize });
-    if(!r.success){
-      resultDiv.innerHTML = `<div class="result-box error"><i class="fa-solid fa-triangle-exclamation"></i><div><div class="rtitle">Something went wrong</div><div class="rbody">${esc(r.error||'Please try again.')}</div></div></div>`;
-    } else if(r.duplicate){
-      resultDiv.innerHTML = `<div class="result-box warn"><i class="fa-solid fa-circle-check"></i><div><div class="rtitle">You're already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. Size on file: <b>${esc(r.data.size)}</b>. No need to register again.</div></div></div>`;
+  try {
+    const r = await apiPost({
+      action: "register",
+      name,
+      employeeNumber: empRaw,
+      company,
+      date: todayNumeric,
+      size: selectedSize
+    });
+    if (!r.success) {
+      resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Something went wrong</div><div class="rbody">${esc(r.error||"Please try again.")}</div></div></div>`;
+    } else if (r.duplicate) {
+      resultDiv.innerHTML = `<div class="result warn"><div class="mark">✓</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. Size on file: <b>${esc(r.data.size)}</b>.</div></div></div>`;
     } else {
-      resultDiv.innerHTML = `<div class="result-box success"><i class="fa-solid fa-circle-check"></i><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)} · Size <b>${esc(selectedSize)}</b></div></div></div>`;
-      document.getElementById('regName').value='';
-      document.getElementById('regEmp').value='';
-      document.getElementById('regCompany').value='';
-      document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('selected'));
+      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)} · Size <b>${esc(selectedSize)}</b><br>${esc(todayWords)} (${esc(todayNumeric)})</div></div></div>`;
+      document.getElementById("regName").value = "";
+      document.getElementById("regEmp").value = "";
+      document.getElementById("regCompany").value = "";
+      document.querySelectorAll(".size-btn").forEach(b => b.classList.remove("selected"));
       selectedSize = null;
     }
-  }catch(e){
-    resultDiv.innerHTML = `<div class="result-box error"><i class="fa-solid fa-triangle-exclamation"></i><div><div class="rtitle">Connection error</div><div class="rbody">Check your internet connection and try again.</div></div></div>`;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Connection error</div><div class="rbody">Check your internet connection and try again.</div></div></div>`;
   }
   submitBtn.disabled = false;
-  submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Sign Me In';
+  submitBtn.textContent = "Sign Me In";
 });
 
 async function doFind(){
-  const digits = document.getElementById('findInput').value.trim();
-  const out = document.getElementById('findResults');
-  if(digits.length !== 4){
-    out.innerHTML = `<div class="empty"><i class="fa-solid fa-keyboard"></i>Enter exactly 4 digits</div>`;
+  const digits = document.getElementById("findInput").value.trim();
+  const out = document.getElementById("findResults");
+  if (digits.length !== 4) {
+    out.innerHTML = `<div class="empty"><span class="glyph">⋯</span>Enter exactly 4 digits</div>`;
     return;
   }
   out.innerHTML = '<div class="spinner"></div>';
-  try{
-    const r = await apiGet({ action:'search', query: digits });
+  try {
+    const r = await apiGet({ action: "search", query: digits });
     const records = r.success ? r.data : [];
-    if(records.length === 0){
-      out.innerHTML = `<div class="empty"><i class="fa-solid fa-user-xmark"></i>No match found. If you haven't registered yet, use the Register tab.</div>`;
+    if (records.length === 0) {
+      out.innerHTML = `<div class="empty"><span class="glyph">?</span>No match found. Use Register if you haven't signed in yet.</div>`;
       return;
     }
     out.innerHTML = records.map(rr => `
       <div class="entry">
         <div>
           <div class="name">${esc(rr.name)}</div>
-          <div class="meta">${esc(rr.company)} · <span class="mono">••${esc(rr.employeeNumber.slice(-4))}</span></div>
+          <div class="meta">${esc(rr.company)} · ••${esc(rr.employeeNumber.slice(-4))}</div>
         </div>
         <div class="size-tag">${esc(rr.size)}</div>
       </div>
-    `).join('');
-  }catch(e){
-    out.innerHTML = `<div class="empty"><i class="fa-solid fa-triangle-exclamation"></i>Connection error — try again.</div>`;
+    `).join("");
+  } catch (e) {
+    out.innerHTML = `<div class="empty"><span class="glyph">!</span>Connection error — try again.</div>`;
   }
 }
-document.getElementById('findBtn').addEventListener('click', doFind);
-document.getElementById('findInput').addEventListener('keydown', e=>{ if(e.key==='Enter') doFind(); });
+document.getElementById("findBtn").addEventListener("click", doFind);
+document.getElementById("findInput").addEventListener("keydown", e => { if (e.key === "Enter") doFind(); });
 
 function renderPinDots(){
-  document.querySelectorAll('#pinDots .dot').forEach((d,i)=>{ d.classList.toggle('filled', i < pinBuffer.length); });
+  document.querySelectorAll("#pinDots .dot").forEach((d, i) => {
+    d.classList.toggle("filled", i < pinBuffer.length);
+  });
 }
-document.getElementById('pinPad').addEventListener('click', e=>{
-  const btn = e.target.closest('button');
-  if(!btn) return;
+
+document.getElementById("pinPad").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
   const k = btn.dataset.k;
-  if(k === 'clear'){ pinBuffer=''; }
-  else if(k === 'back'){ pinBuffer = pinBuffer.slice(0,-1); }
-  else if(pinBuffer.length < 4){ pinBuffer += k; }
+  if (k === "clear") pinBuffer = "";
+  else if (k === "back") pinBuffer = pinBuffer.slice(0, -1);
+  else if (pinBuffer.length < 4) pinBuffer += k;
   renderPinDots();
-  if(pinBuffer.length === 4){
-    setTimeout(()=>{
-      if(pinBuffer === MOD_PIN){
-        document.getElementById('pinGate').style.display='none';
-        document.getElementById('modDashboard').style.display='block';
+  if (pinBuffer.length === 4) {
+    setTimeout(() => {
+      if (pinBuffer === MOD_PIN) {
+        document.getElementById("pinGate").style.display = "none";
+        document.getElementById("modDashboard").style.display = "block";
         loadModDashboard();
       } else {
-        toast('Incorrect PIN');
-        pinBuffer='';
+        toast("Incorrect PIN");
+        pinBuffer = "";
         renderPinDots();
       }
     }, 150);
@@ -407,78 +773,85 @@ document.getElementById('pinPad').addEventListener('click', e=>{
 
 let cachedRecords = [];
 async function loadModDashboard(){
-  const listEl = document.getElementById('modList');
+  applyAutoDate();
+  const listEl = document.getElementById("modList");
   listEl.innerHTML = '<div class="spinner"></div>';
-  try{
-    const r = await apiGet({ action:'list' });
+  try {
+    const r = await apiGet({ action: "list" });
     cachedRecords = r.success ? r.data : [];
-  }catch(e){ cachedRecords = []; }
+  } catch (e) { cachedRecords = []; }
 
-  document.getElementById('statTotal').textContent = cachedRecords.length;
-  const counts = {S:0,M:0,L:0};
-  cachedRecords.forEach(r=>{ if(counts[r.size]!==undefined) counts[r.size]++; });
-  document.getElementById('statToday').textContent = `${counts.S} / ${counts.M} / ${counts.L}`;
+  document.getElementById("statTotal").textContent = cachedRecords.length;
+  const counts = { S: 0, M: 0, L: 0 };
+  cachedRecords.forEach(r => { if (counts[r.size] !== undefined) counts[r.size]++; });
+  document.getElementById("statToday").textContent = `${counts.S} / ${counts.M} / ${counts.L}`;
 
-  if(cachedRecords.length === 0){
-    listEl.innerHTML = `<div class="empty"><i class="fa-solid fa-clipboard"></i>No attendees yet</div>`;
+  if (cachedRecords.length === 0) {
+    listEl.innerHTML = `<div class="empty"><span class="glyph">∅</span>No attendees yet</div>`;
     return;
   }
 
   listEl.innerHTML = cachedRecords.map(r => `
     <div class="mod-entry" data-emp="${esc(r.employeeNumber)}">
       <div class="name">${esc(r.name)}</div>
-      <div class="meta">${esc(r.company)} · <span class="mono">${esc(r.employeeNumber)}</span></div>
+      <div class="meta">${esc(r.company)} · ${esc(r.employeeNumber)} · ${esc(r.date||"")}</div>
       <div class="mod-controls">
-        <button class="mini-size ${r.size==='S'?'on':''}" data-size="S">S</button>
-        <button class="mini-size ${r.size==='M'?'on':''}" data-size="M">M</button>
-        <button class="mini-size ${r.size==='L'?'on':''}" data-size="L">L</button>
-        <button class="mini-del"><i class="fa-solid fa-trash"></i></button>
+        <button class="mini-size ${r.size==="S"?"on":""}" data-size="S">S</button>
+        <button class="mini-size ${r.size==="M"?"on":""}" data-size="M">M</button>
+        <button class="mini-size ${r.size==="L"?"on":""}" data-size="L">L</button>
+        <button class="mini-del">Delete</button>
       </div>
     </div>
-  `).join('');
+  `).join("");
 
-  listEl.querySelectorAll('.mod-entry').forEach(entryEl=>{
+  listEl.querySelectorAll(".mod-entry").forEach(entryEl => {
     const emp = entryEl.dataset.emp;
-    entryEl.querySelectorAll('.mini-size').forEach(sb=>{
-      sb.addEventListener('click', async ()=>{
-        await apiPost({ action:'update', employeeNumber: emp, size: sb.dataset.size });
-        entryEl.querySelectorAll('.mini-size').forEach(x=>x.classList.remove('on'));
-        sb.classList.add('on');
-        toast('Size updated');
+    entryEl.querySelectorAll(".mini-size").forEach(sb => {
+      sb.addEventListener("click", async () => {
+        await apiPost({ action: "update", employeeNumber: emp, size: sb.dataset.size });
+        entryEl.querySelectorAll(".mini-size").forEach(x => x.classList.remove("on"));
+        sb.classList.add("on");
+        toast("Size updated");
       });
     });
-    entryEl.querySelector('.mini-del').addEventListener('click', async ()=>{
-      if(!confirm('Remove this attendee?')) return;
-      await apiPost({ action:'delete', employeeNumber: emp });
+    entryEl.querySelector(".mini-del").addEventListener("click", async () => {
+      if (!confirm("Remove this attendee?")) return;
+      await apiPost({ action: "delete", employeeNumber: emp });
       loadModDashboard();
-      toast('Entry removed');
+      toast("Entry removed");
     });
   });
 }
-document.getElementById('refreshBtn').addEventListener('click', loadModDashboard);
+document.getElementById("refreshBtn").addEventListener("click", loadModDashboard);
 
-document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  const rows = [['Attendee Name and Surname','Sasol Control Number','Company','Date of Training','Respirator Size Required (S/M/L)']];
-  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date||'', r.size]));
-  const csv = rows.map(row => row.map(cell => `"${(cell||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
+document.getElementById("exportBtn").addEventListener("click", () => {
+  applyAutoDate();
+  const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
+  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, r.date || todayNumeric, r.size]));
+  const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = `respirator-fitment-attendance-${(sessionConfig.date||'session').replace(/\s+/g,'-')}.csv`;
+  a.download = `respirator-fitment-attendance-${todayNumeric.replace(/\//g,"-")}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('CSV downloaded');
+  toast("CSV downloaded");
 });
 
-document.getElementById('genQrBtn').addEventListener('click', ()=>{
-  const url = document.getElementById('linkInput').value.trim();
-  if(!url){ toast('Paste the link first'); return; }
-  const qrImg = document.getElementById('qrImg');
+document.getElementById("genQrBtn").addEventListener("click", () => {
+  let url = document.getElementById("linkInput").value.trim();
+  if (!url) {
+    url = location.href.split("#")[0];
+    document.getElementById("linkInput").value = url;
+  }
+  const qrImg = document.getElementById("qrImg");
   qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=340x340&data=${encodeURIComponent(url)}`;
-  qrImg.style.display = 'inline-block';
+  qrImg.style.display = "inline-block";
 });
 
+document.getElementById("linkInput").value = "https://play0ground.github.io/Sasol/";
+applyAutoDate();
 loadSessionConfig();
 </script>
 </body>
