@@ -135,6 +135,9 @@
     letter-spacing: .1em; text-transform: uppercase; color: var(--soft); margin: 0 0 8px;
   }
   .field { margin-bottom: 14px; }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; min-width: 0; }
+  .field-note { font-weight: 400; font-size: .75rem; color: var(--soft); letter-spacing: 0; text-transform: none; }
   input[type=text], input[type=password] {
     width: 100%; background: rgba(0,0,0,.28); border: 1px solid var(--line);
     color: var(--text); padding: 14px 15px; border-radius: 14px;

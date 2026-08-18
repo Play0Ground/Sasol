@@ -317,14 +317,23 @@ document.getElementById("saveCfgBtn").addEventListener("click", async () => {
 document.getElementById("regForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   computeToday();
-  const name = document.getElementById("regName").value.trim();
+
+  // Combine initials (uppercase, strip dots/spaces) + surname
+  const initialsRaw = document.getElementById("regInitials").value.trim().replace(/[\s.]+/g, "").toUpperCase();
+  const surname = document.getElementById("regSurname").value.trim();
+  const name = initialsRaw && surname ? `${initialsRaw} ${surname}` : (initialsRaw || surname);
+
   const empRaw = document.getElementById("regEmp").value.trim();
   const company = document.getElementById("regCompany").value.trim();
   const resultDiv = document.getElementById("regResult");
   resultDiv.innerHTML = "";
 
-  if (!name || !empRaw || !company) {
-    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in name, control number, and company.</div></div></div>`;
+  if (!initialsRaw || !surname) {
+    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing name</div><div class="rbody">Enter your initials (e.g. <b>NM</b>) and your surname separately.</div></div></div>`;
+    return;
+  }
+  if (!empRaw || !company) {
+    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in control number and company.</div></div></div>`;
     return;
   }
 
@@ -353,7 +362,8 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
         await apiCall({ action: "update", employeeNumber: empRaw, date: stamped });
       } catch (e) {}
       resultDiv.innerHTML = `<div class="result ok"><div class="mark">âœ“</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> Â· ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
-      document.getElementById("regName").value = "";
+      document.getElementById("regInitials").value = "";
+      document.getElementById("regSurname").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
       rosterLoadedAt = 0;

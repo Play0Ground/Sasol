@@ -56,18 +56,24 @@
       <div class="panel">
         <p class="hint phone-hint" style="margin:0 0 14px;">On phone: fill → Sign Me In. Size is assigned later.</p>
         <form id="regForm">
-          <div class="field">
-            <label>Initials &amp; Surname</label>
-            <input type="text" id="regName" placeholder="e.g. T. Malepe" autocomplete="name" required>
+          <div class="field-row">
+            <div class="field">
+              <label>Initials <span class="field-note">(no dots, no spaces)</span></label>
+              <input type="text" id="regInitials" placeholder="e.g. NM" autocomplete="off" required maxlength="6" style="text-transform:uppercase;">
+            </div>
+            <div class="field">
+              <label>Surname</label>
+              <input type="text" id="regSurname" placeholder="e.g. Dlamini" autocomplete="family-name" required>
+            </div>
           </div>
           <div class="field">
             <label>Sasol Control Number</label>
-            <input type="text" id="regEmp" placeholder="e.g. 4471029" inputmode="text" autocomplete="off" required>
+            <input type="text" id="regEmp" placeholder="e.g. 3306781" inputmode="text" autocomplete="off" required>
             <div class="hint">Duplicates blocked by control number. Date stamps automatically.</div>
           </div>
           <div class="field">
             <label>Company</label>
-            <input type="text" id="regCompany" placeholder="e.g. Gijima OHES" autocomplete="organization" required>
+            <input type="text" id="regCompany" placeholder="e.g. Eskom Holdings" autocomplete="organization" required>
           </div>
           <button type="submit" class="btn btn-primary" id="submitBtn">Sign Me In</button>
         </form>
@@ -130,7 +136,7 @@
               </div>
               <div class="field" style="margin-bottom:0;">
                 <label>Facilitator / Trainer</label>
-                <input type="text" id="cfgFacilitator" placeholder="e.g. D. Kruger">
+                <input type="text" id="cfgFacilitator" placeholder="e.g. BN Zulu">
               </div>
               <button type="button" class="btn btn-ghost btn-small" id="saveCfgBtn" style="margin-top:14px;">Save Session Details</button>
             </div>
@@ -159,7 +165,7 @@
             </div>
             <label>Quick find (name or last 4) — then assign size</label>
             <div class="search-row" style="margin-bottom:12px;">
-              <input type="text" id="modSearch" placeholder="Malepe or 1066" autocomplete="off">
+              <input type="text" id="modSearch" placeholder="Dlamini or 6781" autocomplete="off">
             </div>
             <div class="filter-chips">
               <button type="button" class="filt on" data-filt="all">All</button>
