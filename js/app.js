@@ -29,6 +29,69 @@ let rosterLoadedAt = 0;
 let modFilter = "all";
 let modDateFilter = ""; // "" = all days; otherwise "11 August 2026"
 let rosterPromise = null;
+let syncTimer = null;
+
+/** Control number / ID as plain text (keep leading zeros) */
+function controlKey(emp){
+  return String(emp == null ? "" : emp).replace(/^\u200B+/, "").trim();
+}
+
+function duplicateControlCounts(list){
+  const counts = {};
+  (list || []).forEach(r => {
+    const k = controlKey(r.employeeNumber);
+    if (!k) return;
+    counts[k] = (counts[k] || 0) + 1;
+  });
+  return counts;
+}
+
+function renderDupBanner(list){
+  const el = document.getElementById("dupBanner");
+  if (!el) return;
+  const counts = duplicateControlCounts(list);
+  const dups = Object.keys(counts).filter(k => counts[k] > 1);
+  if (!dups.length) {
+    el.style.display = "none";
+    el.innerHTML = "";
+    return;
+  }
+  el.style.display = "block";
+  el.innerHTML = `<b>Duplicate check:</b> ${dups.length} control number/ID value${dups.length === 1 ? "" : "s"} appear more than once `
+    + `(${dups.slice(0, 6).map(d => `<b>${esc(d)}</b>×${counts[d]}`).join(", ")}${dups.length > 6 ? ", …" : ""}). `
+    + `Flagged in yellow below — <b>not deleted</b>. Fix on the sheet or edit/delete the extra row.`;
+}
+
+/** Re-pull from spreadsheet so UI matches sheet (after delete/save/sheet edits) */
+async function reloadFromSheet(opts){
+  const silent = !!(opts && opts.silent);
+  try {
+    rosterLoadedAt = 0;
+    const list = await ensureRoster(true);
+    cachedRecords = list.slice();
+    if (pinUnlocked) {
+      fillModDateFilter();
+      renderModList();
+    }
+    return list;
+  } catch (e) {
+    if (!silent) toast("Could not refresh from sheet");
+    return cachedRecords;
+  }
+}
+
+function startSheetSync(){
+  stopSheetSync();
+  syncTimer = setInterval(() => {
+    if (!pinUnlocked) return;
+    if (document.hidden) return;
+    reloadFromSheet({ silent: true }).catch(() => {});
+  }, SYNC_POLL_MS);
+}
+
+function stopSheetSync(){
+  if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+}
 
 /** Sort key for training date (newest first). Unknown/blank dates go last. */
 function dateSortKey(value){
@@ -376,7 +439,8 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
   const surname = document.getElementById("regSurname").value.trim();
   const name = initialsRaw && surname ? `${initialsRaw} ${surname}` : (initialsRaw || surname);
 
-  const empRaw = document.getElementById("regEmp").value.trim();
+  // Control number / ID kept as text (leading zeros allowed)
+  const empRaw = controlKey(document.getElementById("regEmp").value);
   const company = document.getElementById("regCompany").value.trim();
   const resultDiv = document.getElementById("regResult");
   resultDiv.innerHTML = "";
@@ -386,16 +450,29 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
     return;
   }
   if (!empRaw || !company) {
-    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in control number and company.</div></div></div>`;
+    resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Missing information</div><div class="rbody">Fill in control number / ID and company.</div></div></div>`;
     return;
   }
 
   const submitBtn = document.getElementById("submitBtn");
   submitBtn.disabled = true;
-  submitBtn.textContent = "Submittingâ€¦";
+  submitBtn.textContent = "Submitting…";
   resultDiv.innerHTML = `<div class="spinner"></div>`;
 
   try {
+    // Fresh roster check so we catch duplicates even if cache was stale
+    try {
+      const list = await ensureRoster(true);
+      const hit = list.find(r => controlKey(r.employeeNumber) === empRaw);
+      if (hit) {
+        const sized = hasSize(hit) ? `Size on file: <b>${esc(hit.size)}</b>.` : `Size still pending assignment.`;
+        resultDiv.innerHTML = `<div class="result warn"><div class="mark">!</div><div><div class="rtitle">Already on the register</div><div class="rbody">Control number / ID <b>${esc(empRaw)}</b> belongs to <b>${esc(hit.name)}</b>. ${sized}<br>Duplicates are not allowed.</div></div></div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign Me In";
+        return;
+      }
+    } catch (e) { /* server will still enforce */ }
+
     const r = await apiCall({
       action: "register",
       name,
@@ -407,20 +484,18 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
       resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Something went wrong</div><div class="rbody">${esc(r.error||"Please try again.")}</div></div></div>`;
     } else if (r.duplicate) {
       const sized = hasSize(r.data) ? `Size on file: <b>${esc(r.data.size)}</b>.` : `Size still pending assignment.`;
-      resultDiv.innerHTML = `<div class="result warn"><div class="mark">âœ“</div><div><div class="rtitle">Already signed in</div><div class="rbody">Welcome back, <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
+      resultDiv.innerHTML = `<div class="result warn"><div class="mark">!</div><div><div class="rtitle">Already signed in</div><div class="rbody">Control number / ID <b>${esc(empRaw)}</b> is already used by <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
     } else {
-      // Apps Script still writes combined date â€” rewrite to "11 August 2026" via update
       const stamped = sessionSheetDate() || todayWords;
       try {
-        await apiCall({ action: "update", employeeNumber: empRaw, date: stamped });
+        await apiCall({ action: "update", employeeNumber: empRaw, date: stamped, row: r.data && r.data.row ? String(r.data.row) : "" });
       } catch (e) {}
-      resultDiv.innerHTML = `<div class="result ok"><div class="mark">âœ“</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> Â· ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
+      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regInitials").value = "";
       document.getElementById("regSurname").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
-      rosterLoadedAt = 0;
-      ensureRoster(true).catch(() => {});
+      await reloadFromSheet({ silent: true });
       toast("Saved to spreadsheet");
     }
   } catch (e) {
@@ -437,10 +512,10 @@ async function doFind(){
     out.innerHTML = `<div class="empty">Enter exactly 4 digits</div>`;
     return;
   }
-  // Instant if roster already cached; otherwise one list load then local filter
-  if (!rosterCache.length) out.innerHTML = '<div class="spinner"></div>';
+  out.innerHTML = '<div class="spinner"></div>';
   try {
-    const list = await ensureRoster(false);
+    // Always refresh so deletes / sheet edits show without a hard page reload
+    const list = await ensureRoster(true);
     const records = findByLast4(digits, list);
     if (records.length === 0) {
       out.innerHTML = `<div class="empty">No match found. Use Register if you haven't signed in yet.</div>`;
@@ -450,19 +525,19 @@ async function doFind(){
       <div class="entry">
         <div>
           <div class="name">${esc(rr.name)}</div>
-          <div class="meta">${esc(rr.company)} Â· Control â€¢â€¢${esc(String(rr.employeeNumber).slice(-4))}<br>${esc(toSheetDate(rr.date) || "Date pending")}</div>
+          <div class="meta">${esc(rr.company)} · Control ••${esc(String(rr.employeeNumber).slice(-4))}<br>${esc(toSheetDate(rr.date) || "Date pending")}</div>
         </div>
         ${sizeBadge(rr.size)}
       </div>
     `).join("");
   } catch (e) {
-    out.innerHTML = `<div class="empty">Connection error â€” try again.</div>`;
+    out.innerHTML = `<div class="empty">Connection error — try again.</div>`;
   }
 }
 document.getElementById("findBtn").addEventListener("click", doFind);
 document.getElementById("findInput").addEventListener("input", () => {
   const digits = document.getElementById("findInput").value.trim();
-  if (digits.length === 4 && rosterCache.length) doFind();
+  if (digits.length === 4) doFind();
 });
 document.getElementById("findInput").addEventListener("keydown", e => { if (e.key === "Enter") doFind(); });
 
@@ -480,6 +555,7 @@ function tryUnlockPin(){
     pinUnlocked = true;
     document.getElementById("pinGate").style.display = "none";
     document.getElementById("modDashboard").style.display = "block";
+    startSheetSync();
     loadModDashboard();
   } else {
     toast("Incorrect PIN");
@@ -575,6 +651,9 @@ function renderModList(){
   document.getElementById("statPending").textContent = pending;
   document.getElementById("statSized").textContent = sized;
   updateModDateHint();
+  renderDupBanner(cachedRecords);
+
+  const dupCounts = duplicateControlCounts(cachedRecords);
 
   if (records.length === 0) {
     listEl.innerHTML = `<div class="empty">${modDateFilter ? "No attendees for this day" : "No matching attendees"}</div>`;
@@ -586,7 +665,7 @@ function renderModList(){
     <thead>
       <tr>
         <th class="col-name">Attendee Name and Surname</th>
-        <th class="col-emp">Sasol Control Number</th>
+        <th class="col-emp">Control No / ID</th>
         <th class="col-co">Company</th>
         <th class="col-date">Date of Training</th>
         <th class="col-size">Size</th>
@@ -595,17 +674,19 @@ function renderModList(){
     </thead>
     <tbody>
       ${records.map(r => {
-        const emp = String(r.employeeNumber);
+        const emp = controlKey(r.employeeNumber);
         const size = (r.size || "").toString().toUpperCase();
+        const isDup = (dupCounts[emp] || 0) > 1;
+        const rowId = r.row || "";
         return `
-        <tr data-emp="${esc(emp)}">
-          <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}"></td>
+        <tr data-emp="${esc(emp)}" data-row="${esc(String(rowId))}" class="${isDup ? "dup-row" : ""}">
+          <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}">${isDup ? `<span class="dup-tag">Duplicate</span>` : ""}</td>
           <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" inputmode="text" autocomplete="off"></td>
           <td class="col-co"><input type="text" class="edit-company" value="${esc(r.company)}"></td>
           <td class="col-date"><input type="text" class="edit-date" value="${esc(toSheetDate(r.date) || "")}" placeholder="${esc(sessionSheetDate())}"></td>
           <td class="col-size">
             <select class="edit-size">
-              <option value="" ${!size ? "selected" : ""}>â€”</option>
+              <option value="" ${!size ? "selected" : ""}>—</option>
               <option value="S" ${size==="S"?"selected":""}>S</option>
               <option value="M" ${size==="M"?"selected":""}>M</option>
               <option value="L" ${size==="L"?"selected":""}>L</option>
@@ -623,63 +704,60 @@ function renderModList(){
   </table>`;
 
   listEl.querySelectorAll("tr[data-emp]").forEach(rowEl => {
-    const emp = rowEl.dataset.emp;
+    const emp = controlKey(rowEl.dataset.emp);
+    const sheetRow = rowEl.dataset.row || "";
 
     rowEl.querySelector(".edit-size").addEventListener("change", async (e) => {
       const size = e.target.value;
       if (!size) return;
       try {
-        const r = await apiCall({ action: "update", employeeNumber: emp, size });
+        const payload = { action: "update", employeeNumber: emp, size };
+        if (sheetRow) payload.row = sheetRow;
+        const r = await apiCall(payload);
         if (!r.success) { toast(r.error || "Update failed"); return; }
-        const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
-        if (rec) rec.size = size;
-        const rc = rosterCache.find(x => String(x.employeeNumber) === emp);
-        if (rc) rc.size = size;
         toast("Size saved");
-        renderModList();
+        await reloadFromSheet({ silent: true });
       } catch (err) { toast("Connection error"); }
     });
 
     rowEl.querySelector(".save-row").addEventListener("click", async () => {
       const name = rowEl.querySelector(".edit-name").value.trim();
       const company = rowEl.querySelector(".edit-company").value.trim();
-      const newEmp = rowEl.querySelector(".edit-emp").value.trim();
+      const newEmp = controlKey(rowEl.querySelector(".edit-emp").value);
       const date = toSheetDate(rowEl.querySelector(".edit-date").value.trim());
       const size = rowEl.querySelector(".edit-size").value;
       if (!name || !company) { toast("Name and company required"); return; }
-      if (!newEmp) { toast("Control number required"); return; }
+      if (!newEmp) { toast("Control number / ID required"); return; }
+      if (newEmp !== emp) {
+        const clash = cachedRecords.find(x => controlKey(x.employeeNumber) === newEmp && String(x.row || "") !== String(sheetRow));
+        if (clash) {
+          toast("That control number / ID already exists — duplicate not allowed");
+          return;
+        }
+      }
       try {
         const payload = { action: "update", employeeNumber: emp, name, company };
+        if (sheetRow) payload.row = sheetRow;
         if (newEmp !== emp) payload.newEmployeeNumber = newEmp;
         if (date) payload.date = date;
         if (size) payload.size = size;
         const r = await apiCall(payload);
         if (!r.success) { toast(r.error || "Update failed"); return; }
-        const rec = cachedRecords.find(x => String(x.employeeNumber) === emp);
-        if (rec) {
-          rec.name = name;
-          rec.company = company;
-          rec.employeeNumber = newEmp;
-          if (date) rec.date = date;
-          if (size) rec.size = size;
-        }
-        rosterCache = cachedRecords.slice();
         toast("Row saved to sheet");
-        fillModDateFilter();
-        renderModList();
+        await reloadFromSheet({ silent: true });
       } catch (err) { toast("Connection error"); }
     });
 
     rowEl.querySelector(".del-row").addEventListener("click", async () => {
       if (!confirm("Remove this attendee from the spreadsheet?")) return;
       try {
-        const r = await apiCall({ action: "delete", employeeNumber: emp });
+        const payload = { action: "delete", employeeNumber: emp };
+        if (sheetRow) payload.row = sheetRow;
+        const r = await apiCall(payload);
         if (!r.success) { toast(r.error || "Delete failed"); return; }
-        cachedRecords = cachedRecords.filter(x => String(x.employeeNumber) !== emp);
-        rosterCache = cachedRecords.slice();
         toast("Deleted from sheet");
-        fillModDateFilter();
-        renderModList();
+        // Always re-pull so list / row numbers / duplicates match the spreadsheet
+        await reloadFromSheet({ silent: true });
       } catch (err) { toast("Connection error"); }
     });
   });
@@ -689,13 +767,13 @@ async function loadModDashboard(){
   const listEl = document.getElementById("modList");
   listEl.innerHTML = '<div class="spinner"></div>';
   try {
-    cachedRecords = await ensureRoster(true);
+    await reloadFromSheet({ silent: true });
   } catch (e) {
     cachedRecords = [];
     toast("Could not load sheet data");
+    fillModDateFilter();
+    renderModList();
   }
-  fillModDateFilter();
-  renderModList();
 }
 
 document.getElementById("refreshBtn").addEventListener("click", loadModDashboard);
@@ -763,4 +841,13 @@ computeToday();
 loadSessionConfig();
 // Prefetch roster so Find Me feels instant (does not affect Register typing)
 ensureRoster(false).catch(() => {});
+
+// When you come back to the tab / window, pull latest spreadsheet data
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  reloadFromSheet({ silent: true }).catch(() => {});
+});
+window.addEventListener("focus", () => {
+  reloadFromSheet({ silent: true }).catch(() => {});
+});
 

@@ -294,6 +294,19 @@
     font-size: .72rem; font-weight: 800; cursor: pointer; font-family: inherit;
   }
   .mini-size.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
+  .dup-banner {
+    margin: 0 0 12px; padding: 12px 14px; border-radius: 12px;
+    background: rgba(240,180,41,.12); border: 1px solid rgba(240,180,41,.35);
+    color: var(--safety); font-size: .88rem; line-height: 1.45;
+  }
+  .dup-banner b { color: #ffd56a; }
+  tr.dup-row td { background: rgba(240,180,41,.08); }
+  .dup-tag {
+    display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px;
+    font-size: .65rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    background: rgba(240,180,41,.2); color: var(--safety); border: 1px solid rgba(240,180,41,.4);
+    vertical-align: middle;
+  }
   .date-filter-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
   .date-filter-row select {
     flex: 1; min-width: 160px;

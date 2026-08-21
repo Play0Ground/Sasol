@@ -67,9 +67,9 @@
             </div>
           </div>
           <div class="field">
-            <label>Sasol Control Number</label>
-            <input type="text" id="regEmp" placeholder="e.g. 3306781" inputmode="text" autocomplete="off" required>
-            <div class="hint">Duplicates blocked by control number. Date stamps automatically.</div>
+            <label>Sasol Control Number / ID</label>
+            <input type="text" id="regEmp" placeholder="e.g. 03306781" inputmode="text" autocomplete="off" required>
+            <div class="hint">Digits only as text — leading zeros kept. Duplicates blocked by this number.</div>
           </div>
           <div class="field">
             <label>Company</label>
@@ -163,6 +163,7 @@
               <div class="stat"><div class="num" id="statPending">0</div><div class="lbl">No Size</div></div>
               <div class="stat"><div class="num" id="statSized">0</div><div class="lbl">Sized</div></div>
             </div>
+            <div id="dupBanner" class="dup-banner" style="display:none;"></div>
             <div class="field" style="margin-bottom:12px;">
               <label>Show by training date</label>
               <div class="date-filter-row">

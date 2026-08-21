@@ -35,8 +35,20 @@ function norm_(s) {
 }
 
 function empStr_(v) {
-  if (typeof v === 'number' && isFinite(v)) return String(Math.round(v));
-  return String(v || '').trim();
+  // Control number / ID is TEXT — keep leading zeros (e.g. 0123456)
+  if (v === null || v === undefined) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') return '';
+  if (typeof v === 'number' && isFinite(v)) {
+    // Already stored as a number in Sheets (zeros already lost) — keep digits only
+    return String(Math.round(v));
+  }
+  return String(v).replace(/^\u200B+/, '').trim();
+}
+
+function setEmpCell_(sheet, row, col1Based, emp) {
+  const cell = sheet.getRange(row, col1Based);
+  cell.setNumberFormat('@'); // plain text — preserves leading zeros
+  cell.setValue(empStr_(emp));
 }
 
 /**
@@ -69,7 +81,7 @@ function locateRegister_() {
         const h = row[c];
         if (!h) continue;
         if (nameCol < 0 && (h.indexOf('attendee') >= 0 || h.indexOf('name') >= 0 || h.indexOf('surname') >= 0)) nameCol = c;
-        if (empCol < 0 && (h.indexOf('control') >= 0 || h.indexOf('employee') >= 0 || h === 'empno' || h.indexOf('sasolcontrol') >= 0)) empCol = c;
+        if (empCol < 0 && (h.indexOf('control') >= 0 || h.indexOf('employee') >= 0 || h === 'empno' || h === 'id' || h.indexOf('identity') >= 0 || h.indexOf('sasolcontrol') >= 0)) empCol = c;
         if (companyCol < 0 && h.indexOf('company') >= 0) companyCol = c;
         if (dateCol < 0 && h.indexOf('date') >= 0) dateCol = c;
         if (sizeCol < 0 && (h.indexOf('size') >= 0 || h.indexOf('respirator') >= 0)) sizeCol = c;
@@ -182,13 +194,14 @@ function formatDateCell_(value) {
   return String(value || '').trim();
 }
 
-function rowToRecordFrom_(row, map) {
+function rowToRecordFrom_(row, map, sheetRow) {
   return {
     name: String(row[map.nameCol] || '').trim(),
     employeeNumber: empStr_(row[map.empCol]),
     company: String(row[map.companyCol] || '').trim(),
     date: formatDateCell_(row[map.dateCol]),
-    size: String(row[map.sizeCol] || '').trim().toUpperCase()
+    size: String(row[map.sizeCol] || '').trim().toUpperCase(),
+    row: sheetRow || 0
   };
 }
 
@@ -201,9 +214,16 @@ function listRecords_() {
 
   const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
   const values = sh.getRange(start, 1, last, maxCol).getValues();
-  return values
-    .map(function(row) { return rowToRecordFrom_(row, map); })
-    .filter(function(r) { return r.employeeNumber !== ''; });
+  const displays = sh.getRange(start, 1, last, maxCol).getDisplayValues();
+  const out = [];
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i].slice();
+    // Prefer display text for control number / ID so leading zeros survive
+    row[map.empCol] = displays[i][map.empCol];
+    const rec = rowToRecordFrom_(row, map, start + i);
+    if (rec.employeeNumber !== '') out.push(rec);
+  }
+  return out;
 }
 
 function findRowByEmployee_(emp) {
@@ -213,7 +233,7 @@ function findRowByEmployee_(emp) {
   const last = sh.getLastRow();
   if (last < start) return null;
 
-  const nums = sh.getRange(start, map.empCol + 1, last, 1).getValues();
+  const nums = sh.getRange(start, map.empCol + 1, last, 1).getDisplayValues();
   const target = empStr_(emp);
   for (let i = 0; i < nums.length; i++) {
     if (empStr_(nums[i][0]) === target) {
@@ -221,6 +241,15 @@ function findRowByEmployee_(emp) {
     }
   }
   return null;
+}
+
+function findRowBySheetRow_(sheetRow) {
+  const map = locateRegister_();
+  const row = Number(sheetRow);
+  if (!row || row <= map.headerRow) return null;
+  const sh = map.sheet;
+  if (row > sh.getLastRow()) return null;
+  return { sheet: sh, row: row, map: map };
 }
 
 function handleRegister_(name, employeeNumber, company, size) {
@@ -232,7 +261,7 @@ function handleRegister_(name, employeeNumber, company, size) {
   const date = today.display;
 
   if (!name || !employeeNumber || !company) {
-    return { success: false, error: 'Name, control number, and company are required.' };
+    return { success: false, error: 'Name, control number / ID, and company are required.' };
   }
 
   const existing = findRowByEmployee_(employeeNumber);
@@ -240,7 +269,9 @@ function handleRegister_(name, employeeNumber, company, size) {
     const map = existing.map;
     const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
     const rowVals = existing.sheet.getRange(existing.row, 1, 1, maxCol).getValues()[0];
-    return { success: true, duplicate: true, data: rowToRecordFrom_(rowVals, map) };
+    const displays = existing.sheet.getRange(existing.row, 1, 1, maxCol).getDisplayValues()[0];
+    rowVals[map.empCol] = displays[map.empCol];
+    return { success: true, duplicate: true, data: rowToRecordFrom_(rowVals, map, existing.row) };
   }
 
   const map = locateRegister_();
@@ -254,19 +285,23 @@ function handleRegister_(name, employeeNumber, company, size) {
   row[map.dateCol] = date;
   row[map.sizeCol] = size;
   sh.appendRow(row);
+  const newRow = sh.getLastRow();
+  setEmpCell_(sh, newRow, map.empCol + 1, employeeNumber);
 
   writeConfig_({ date: date });
   return {
     success: true,
     duplicate: false,
-    data: { name: name, employeeNumber: employeeNumber, company: company, date: date, size: size, dateNumeric: today.numeric, dateWords: today.words },
+    data: { name: name, employeeNumber: employeeNumber, company: company, date: date, size: size, row: newRow, dateNumeric: today.numeric, dateWords: today.words },
     sheetName: sh.getName()
   };
 }
 
-function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNumber) {
+function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNumber, sheetRow) {
   employeeNumber = empStr_(employeeNumber);
-  const found = findRowByEmployee_(employeeNumber);
+  let found = null;
+  if (sheetRow) found = findRowBySheetRow_(sheetRow);
+  if (!found) found = findRowByEmployee_(employeeNumber);
   if (!found) return { success: false, error: 'Employee not found' };
 
   const sh = found.sheet;
@@ -275,10 +310,13 @@ function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNum
 
   if (newEmployeeNumber !== undefined && newEmployeeNumber !== null && String(newEmployeeNumber).trim() !== '') {
     const nextEmp = empStr_(newEmployeeNumber);
-    if (nextEmp !== employeeNumber) {
+    const currentEmp = empStr_(sh.getRange(row, map.empCol + 1).getDisplayValue());
+    if (nextEmp !== currentEmp) {
       const clash = findRowByEmployee_(nextEmp);
-      if (clash) return { success: false, error: 'That control number already exists' };
-      sh.getRange(row, map.empCol + 1).setValue(nextEmp);
+      if (clash && clash.row !== row) {
+        return { success: false, error: 'That control number / ID already exists (duplicate not allowed).' };
+      }
+      setEmpCell_(sh, row, map.empCol + 1, nextEmp);
     }
   }
   if (name !== undefined && name !== null && String(name).length) sh.getRange(row, map.nameCol + 1).setValue(String(name).trim());
@@ -288,12 +326,15 @@ function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNum
 
   const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
   const rowVals = sh.getRange(row, 1, 1, maxCol).getValues()[0];
-  return { success: true, data: rowToRecordFrom_(rowVals, map) };
+  const displays = sh.getRange(row, 1, 1, maxCol).getDisplayValues()[0];
+  rowVals[map.empCol] = displays[map.empCol];
+  return { success: true, data: rowToRecordFrom_(rowVals, map, row) };
 }
 
-function handleDelete_(employeeNumber) {
-  employeeNumber = empStr_(employeeNumber);
-  const found = findRowByEmployee_(employeeNumber);
+function handleDelete_(employeeNumber, sheetRow) {
+  let found = null;
+  if (sheetRow) found = findRowBySheetRow_(sheetRow);
+  if (!found) found = findRowByEmployee_(empStr_(employeeNumber));
   if (!found) return { success: false, error: 'Employee not found' };
   found.sheet.deleteRow(found.row);
   return { success: true };
@@ -337,10 +378,10 @@ function doGet(e) {
       return jsonOut_(handleRegister_(p.name, p.employeeNumber, p.company, p.size));
     }
     if (action === 'update') {
-      return jsonOut_(handleUpdate_(p.employeeNumber, p.name, p.company, p.date, p.size, p.newEmployeeNumber));
+      return jsonOut_(handleUpdate_(p.employeeNumber, p.name, p.company, p.date, p.size, p.newEmployeeNumber, p.row));
     }
     if (action === 'delete') {
-      return jsonOut_(handleDelete_(p.employeeNumber));
+      return jsonOut_(handleDelete_(p.employeeNumber, p.row));
     }
     if (action === 'setconfig') {
       const today = todayParts_();
@@ -375,10 +416,10 @@ function doPost(e) {
       return jsonOut_(handleRegister_(body.name, body.employeeNumber, body.company, body.size));
     }
     if (action === 'update') {
-      return jsonOut_(handleUpdate_(body.employeeNumber, body.name, body.company, body.date, body.size, body.newEmployeeNumber));
+      return jsonOut_(handleUpdate_(body.employeeNumber, body.name, body.company, body.date, body.size, body.newEmployeeNumber, body.row));
     }
     if (action === 'delete') {
-      return jsonOut_(handleDelete_(body.employeeNumber));
+      return jsonOut_(handleDelete_(body.employeeNumber, body.row));
     }
     return jsonOut_({ success: false, error: 'Unknown action' });
   } catch (err) {

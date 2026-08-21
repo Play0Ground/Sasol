@@ -9,4 +9,5 @@ const API_URL = "https://script.google.com/macros/s/AKfycbxp2RyVJLAgsi13190nIHNk
 const MOD_PIN = "2026";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const SESSION_KEY = "sasol_session_v1";
-const ROSTER_TTL_MS = 60 * 1000;
+const ROSTER_TTL_MS = 15 * 1000; // short cache so sheet edits show up quickly
+const SYNC_POLL_MS = 20 * 1000;  // moderator auto-pull from spreadsheet
