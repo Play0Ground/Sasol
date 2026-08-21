@@ -94,15 +94,15 @@
       </div>
     </section>
 
-    <!-- MODERATOR: PIN gate (2026) then session + sheet editing -->
+    <!-- MODERATOR: PIN checked against Access sheet (B1) — never shown on this page -->
     <section id="tab-mod">
       <div class="panel" id="pinGate">
         <div class="pin-wrap">
           <div class="lock">PIN</div>
           <p style="color:var(--soft);font-size:.9rem;margin:0;">Moderator access</p>
         </div>
-        <p class="pin-hint">Type on keyboard or tap the pad</p>
-        <input type="password" id="pinType" class="pin-type" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="••••">
+        <p class="pin-hint">PIN is set in the spreadsheet Access tab — not shown here</p>
+        <input type="password" id="pinType" class="pin-type" inputmode="numeric" maxlength="12" autocomplete="one-time-code" placeholder="••••">
         <div class="pin-dots" id="pinDots">
           <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
         </div>
@@ -112,7 +112,7 @@
           <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
           <button type="button" class="clear" data-k="clear">CLEAR</button><button type="button" data-k="0">0</button><button type="button" data-k="back">⌫</button>
         </div>
-        <p style="text-align:center;color:var(--faint);font-size:.72rem;margin:16px 0 0;">Default PIN: 2026</p>
+        <button type="button" class="btn btn-primary" id="pinUnlockBtn" style="margin-top:14px;">Unlock</button>
       </div>
 
       <div id="modDashboard" style="display:none;">
@@ -150,6 +150,12 @@
                 <input type="text" id="linkInput" value="https://play0ground.github.io/Sasol/">
                 <button type="button" class="btn btn-ghost btn-small" id="genQrBtn">Generate</button>
               </div>
+            </div>
+
+            <div class="panel" id="analyticsPanel">
+              <div class="sec-label">Size overview</div>
+              <p class="hint" style="margin:0 0 12px;">Auto counts for the day filter below — no ML, just the register numbers.</p>
+              <div id="sizeCharts"></div>
             </div>
           </div>
 

@@ -277,7 +277,8 @@
   .sheet-table .col-name { min-width: 140px; }
   .sheet-table .col-emp { min-width: 110px; }
   .sheet-table .col-co { min-width: 110px; }
-  .sheet-table .col-date { min-width: 150px; }
+  .sheet-table .col-date { min-width: 130px; }
+  .sheet-table .col-time { min-width: 72px; }
   .sheet-table .col-size { min-width: 70px; }
   .sheet-table .col-act { min-width: 120px; white-space: nowrap; }
   .sheet-actions { display: flex; gap: 4px; }
@@ -323,6 +324,23 @@
     font-size: .7rem; font-weight: 700; cursor: pointer;
   }
   .filter-chips button.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
+  .chart-list { display: flex; flex-direction: column; gap: 10px; }
+  .chart-row { display: grid; grid-template-columns: 54px 1fr 36px; gap: 10px; align-items: center; }
+  .chart-row .lab { font-size: .78rem; font-weight: 700; color: var(--soft); }
+  .chart-row .track {
+    height: 12px; border-radius: 999px; background: rgba(0,0,0,.35); overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .chart-row .fill {
+    height: 100%; border-radius: 999px; background: linear-gradient(90deg, #c98a12, var(--safety));
+    min-width: 0; transition: width .35s ease;
+  }
+  .chart-row .fill.pending { background: linear-gradient(90deg, #5a6a74, #8aa0ad); }
+  .chart-row .n { font-size: .85rem; font-weight: 800; text-align: right; color: var(--text); }
+  .time-chip {
+    display: inline-block; margin-top: 4px; font-size: .72rem; color: var(--safety);
+    font-weight: 600; letter-spacing: .02em;
+  }
   .qr-box { text-align: center; }
   .qr-box img { width: 160px; height: 160px; border-radius: 14px; background: #fff; padding: 10px; }
   .link-row { display: flex; gap: 8px; margin-top: 12px; }

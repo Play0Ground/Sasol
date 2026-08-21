@@ -4,13 +4,17 @@
  * After editing: Deploy → Manage deployments → Edit → New version → Deploy
  * Who has access: Anyone | Execute as: Me
  *
- * Auto-finds the sheet tab that has columns:
- * Name | Control Number | Company | Date | Size
+ * Sheets used:
+ *  - Register tab (auto-found): Name | Control Number | Company | Date | Size | Time Signed In
+ *  - Config: session location / facilitator
+ *  - Access: moderator PIN lives in B1 (label in A1). Created automatically.
  */
 
 const CONFIG_SHEET = 'Config';
+const ACCESS_SHEET = 'Access'; // moderator PIN — put the PIN in cell B1
 const TZ = 'Africa/Johannesburg';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DEFAULT_PIN = '2026'; // only used once when Access sheet is first created
 
 function jsonOut_(obj) {
   return ContentService
@@ -27,7 +31,9 @@ function todayParts_() {
   const mm = Utilities.formatDate(now, TZ, 'MM');
   const numeric = dd + '/' + mm + '/' + y;
   const words = d + ' ' + MONTHS[m - 1] + ' ' + y;
-  return { numeric: numeric, words: words, display: words };
+  const time = Utilities.formatDate(now, TZ, 'HH:mm'); // 24h Joburg time
+  const stamp = words + ' · ' + time;
+  return { numeric: numeric, words: words, display: words, time: time, stamp: stamp, now: now };
 }
 
 function norm_(s) {
@@ -39,7 +45,6 @@ function empStr_(v) {
   if (v === null || v === undefined) return '';
   if (Object.prototype.toString.call(v) === '[object Date]') return '';
   if (typeof v === 'number' && isFinite(v)) {
-    // Already stored as a number in Sheets (zeros already lost) — keep digits only
     return String(Math.round(v));
   }
   return String(v).replace(/^\u200B+/, '').trim();
@@ -47,13 +52,68 @@ function empStr_(v) {
 
 function setEmpCell_(sheet, row, col1Based, emp) {
   const cell = sheet.getRange(row, col1Based);
-  cell.setNumberFormat('@'); // plain text — preserves leading zeros
+  cell.setNumberFormat('@');
   cell.setValue(empStr_(emp));
+}
+
+function formatDateCell_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    const d = Number(Utilities.formatDate(value, TZ, 'd'));
+    const m = Number(Utilities.formatDate(value, TZ, 'M'));
+    const y = Utilities.formatDate(value, TZ, 'yyyy');
+    return d + ' ' + MONTHS[m - 1] + ' ' + y;
+  }
+  return String(value || '').trim();
+}
+
+function formatTimeCell_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, TZ, 'HH:mm');
+  }
+  const s = String(value || '').trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if (m) {
+    const hh = ('0' + m[1]).slice(-2);
+    return hh + ':' + m[2];
+  }
+  return s;
+}
+
+/** Access sheet: A1 = "Moderator PIN", B1 = the secret PIN (not exposed to the website). */
+function ensureAccessSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(ACCESS_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(ACCESS_SHEET);
+    sh.getRange('A1').setValue('Moderator PIN');
+    sh.getRange('B1').setValue(DEFAULT_PIN);
+    sh.getRange('A2').setValue('Change the PIN in cell B1. The website never shows this value.');
+    sh.getRange('A3').setValue('After changing B1, moderators use the new PIN immediately (no redeploy).');
+    sh.setColumnWidth(1, 160);
+    sh.setColumnWidth(2, 120);
+  } else {
+    if (!String(sh.getRange('A1').getValue() || '').trim()) sh.getRange('A1').setValue('Moderator PIN');
+    if (!String(sh.getRange('B1').getValue() || '').trim()) sh.getRange('B1').setValue(DEFAULT_PIN);
+  }
+  return sh;
+}
+
+function readModeratorPin_() {
+  const sh = ensureAccessSheet_();
+  return String(sh.getRange('B1').getDisplayValue() || '').trim();
+}
+
+function verifyPin_(pin) {
+  const expected = readModeratorPin_();
+  const got = String(pin || '').trim();
+  if (!expected) return { success: true, ok: false, error: 'No PIN set in Access!B1' };
+  if (!got) return { success: true, ok: false, error: 'Enter the moderator PIN' };
+  return { success: true, ok: got === expected };
 }
 
 /**
  * Find the register sheet + header row by looking for Name + Control Number headers.
- * Picks the sheet with the most real data rows.
+ * Ensures a "Time Signed In" column exists.
  */
 function locateRegister_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -62,12 +122,13 @@ function locateRegister_() {
 
   for (let s = 0; s < sheets.length; s++) {
     const sh = sheets[s];
-    if (sh.getName() === CONFIG_SHEET) continue;
+    const name = sh.getName();
+    if (name === CONFIG_SHEET || name === ACCESS_SHEET) continue;
 
     const lastRow = Math.max(sh.getLastRow(), 1);
-    const lastCol = Math.max(sh.getLastColumn(), 5);
+    const lastCol = Math.max(sh.getLastColumn(), 6);
     const scanRows = Math.min(lastRow, 15);
-    const values = sh.getRange(1, 1, scanRows, Math.min(lastCol, 10)).getValues();
+    const values = sh.getRange(1, 1, scanRows, Math.min(lastCol, 12)).getValues();
 
     for (let r = 0; r < values.length; r++) {
       const row = values[r].map(norm_);
@@ -76,6 +137,7 @@ function locateRegister_() {
       let companyCol = -1;
       let dateCol = -1;
       let sizeCol = -1;
+      let timeCol = -1;
 
       for (let c = 0; c < row.length; c++) {
         const h = row[c];
@@ -85,16 +147,16 @@ function locateRegister_() {
         if (companyCol < 0 && h.indexOf('company') >= 0) companyCol = c;
         if (dateCol < 0 && h.indexOf('date') >= 0) dateCol = c;
         if (sizeCol < 0 && (h.indexOf('size') >= 0 || h.indexOf('respirator') >= 0)) sizeCol = c;
+        if (timeCol < 0 && (h.indexOf('time') >= 0 || h.indexOf('signedin') >= 0 || h.indexOf('timestamp') >= 0)) timeCol = c;
       }
 
       if (nameCol < 0 || empCol < 0) continue;
 
-      // Count data rows under this header
-      const dataStart = r + 2; // 1-based sheet row after header
+      const dataStart = r + 2;
       const endRow = sh.getLastRow();
       let count = 0;
       if (endRow >= dataStart) {
-        const empVals = sh.getRange(dataStart, empCol + 1, endRow, 1).getValues();
+        const empVals = sh.getRange(dataStart, empCol + 1, endRow, 1).getDisplayValues();
         for (let i = 0; i < empVals.length; i++) {
           if (empStr_(empVals[i][0]) !== '') count++;
         }
@@ -108,38 +170,58 @@ function locateRegister_() {
         companyCol: companyCol >= 0 ? companyCol : 2,
         dateCol: dateCol >= 0 ? dateCol : 3,
         sizeCol: sizeCol >= 0 ? sizeCol : 4,
+        timeCol: timeCol,
         count: count
       };
 
       if (!best || candidate.count > best.count) best = candidate;
-      break; // use first matching header row on this sheet
+      break;
     }
   }
 
-  if (best) return best;
-
-  // Fallback: create Attendance sheet
-  let sh = ss.getSheetByName('Attendance');
-  if (!sh) {
-    sh = ss.insertSheet('Attendance');
-    sh.appendRow([
-      'Attendee Name and Surname',
-      'Sasol Control Number',
-      'Company',
-      'Date of Training',
-      'Respirator Size Required (S/M/L)'
-    ]);
+  if (!best) {
+    let sh = ss.getSheetByName('Attendance');
+    if (!sh) {
+      sh = ss.insertSheet('Attendance');
+      sh.appendRow([
+        'Attendee Name and Surname',
+        'Sasol Control Number',
+        'Company',
+        'Date of Training',
+        'Respirator Size Required (S/M/L)',
+        'Time Signed In'
+      ]);
+    }
+    best = {
+      sheet: sh,
+      headerRow: 1,
+      nameCol: 0,
+      empCol: 1,
+      companyCol: 2,
+      dateCol: 3,
+      sizeCol: 4,
+      timeCol: 5,
+      count: 0
+    };
   }
-  return {
-    sheet: sh,
-    headerRow: 1,
-    nameCol: 0,
-    empCol: 1,
-    companyCol: 2,
-    dateCol: 3,
-    sizeCol: 4,
-    count: 0
-  };
+
+  ensureTimeColumn_(best);
+  return best;
+}
+
+/** Add "Time Signed In" header if the register sheet does not have a time column yet. */
+function ensureTimeColumn_(map) {
+  if (map.timeCol >= 0) return map;
+  const sh = map.sheet;
+  const headerRow = map.headerRow;
+  const nextCol = Math.max(sh.getLastColumn(), map.sizeCol + 1, map.dateCol + 1, map.empCol + 1, map.companyCol + 1) + 1;
+  sh.getRange(headerRow, nextCol).setValue('Time Signed In');
+  map.timeCol = nextCol - 1; // 0-based
+  return map;
+}
+
+function maxCol_(map) {
+  return Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol, map.timeCol >= 0 ? map.timeCol : 0) + 1;
 }
 
 function getConfigSheet_() {
@@ -155,6 +237,7 @@ function getConfigSheet_() {
 }
 
 function readConfig_() {
+  ensureAccessSheet_();
   const sh = getConfigSheet_();
   const today = todayParts_();
   sh.getRange('A1').setValue(today.display);
@@ -163,9 +246,11 @@ function readConfig_() {
     date: today.display,
     dateNumeric: today.numeric,
     dateWords: today.words,
+    time: today.time,
     location: String(sh.getRange('A2').getValue() || 'Sasol Club'),
     facilitator: String(sh.getRange('A3').getValue() || ''),
     sheetName: loc.sheet.getName(),
+    accessSheet: ACCESS_SHEET,
     recordCount: loc.count
   };
 }
@@ -182,24 +267,14 @@ function writeConfig_(cfg) {
   };
 }
 
-function formatDateCell_(value) {
-  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
-    const dd = Utilities.formatDate(value, TZ, 'dd');
-    const mm = Utilities.formatDate(value, TZ, 'MM');
-    const y = Utilities.formatDate(value, TZ, 'yyyy');
-    const d = Number(Utilities.formatDate(value, TZ, 'd'));
-    const m = Number(Utilities.formatDate(value, TZ, 'M'));
-    return d + ' ' + MONTHS[m - 1] + ' ' + y;
-  }
-  return String(value || '').trim();
-}
-
 function rowToRecordFrom_(row, map, sheetRow) {
+  const time = map.timeCol >= 0 ? formatTimeCell_(row[map.timeCol]) : '';
   return {
     name: String(row[map.nameCol] || '').trim(),
     employeeNumber: empStr_(row[map.empCol]),
     company: String(row[map.companyCol] || '').trim(),
     date: formatDateCell_(row[map.dateCol]),
+    time: time,
     size: String(row[map.sizeCol] || '').trim().toUpperCase(),
     row: sheetRow || 0
   };
@@ -212,14 +287,14 @@ function listRecords_() {
   const last = sh.getLastRow();
   if (last < start) return [];
 
-  const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
+  const maxCol = maxCol_(map);
   const values = sh.getRange(start, 1, last, maxCol).getValues();
   const displays = sh.getRange(start, 1, last, maxCol).getDisplayValues();
   const out = [];
   for (let i = 0; i < values.length; i++) {
     const row = values[i].slice();
-    // Prefer display text for control number / ID so leading zeros survive
     row[map.empCol] = displays[i][map.empCol];
+    if (map.timeCol >= 0) row[map.timeCol] = displays[i][map.timeCol];
     const rec = rowToRecordFrom_(row, map, start + i);
     if (rec.employeeNumber !== '') out.push(rec);
   }
@@ -252,6 +327,16 @@ function findRowBySheetRow_(sheetRow) {
   return { sheet: sh, row: row, map: map };
 }
 
+function readRowRecord_(found) {
+  const map = found.map;
+  const maxCol = maxCol_(map);
+  const rowVals = found.sheet.getRange(found.row, 1, 1, maxCol).getValues()[0];
+  const displays = found.sheet.getRange(found.row, 1, 1, maxCol).getDisplayValues()[0];
+  rowVals[map.empCol] = displays[map.empCol];
+  if (map.timeCol >= 0) rowVals[map.timeCol] = displays[map.timeCol];
+  return rowToRecordFrom_(rowVals, map, found.row);
+}
+
 function handleRegister_(name, employeeNumber, company, size) {
   name = String(name || '').trim();
   employeeNumber = empStr_(employeeNumber);
@@ -259,6 +344,7 @@ function handleRegister_(name, employeeNumber, company, size) {
   size = String(size || '').trim().toUpperCase();
   const today = todayParts_();
   const date = today.display;
+  const time = today.time;
 
   if (!name || !employeeNumber || !company) {
     return { success: false, error: 'Name, control number / ID, and company are required.' };
@@ -266,17 +352,12 @@ function handleRegister_(name, employeeNumber, company, size) {
 
   const existing = findRowByEmployee_(employeeNumber);
   if (existing) {
-    const map = existing.map;
-    const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
-    const rowVals = existing.sheet.getRange(existing.row, 1, 1, maxCol).getValues()[0];
-    const displays = existing.sheet.getRange(existing.row, 1, 1, maxCol).getDisplayValues()[0];
-    rowVals[map.empCol] = displays[map.empCol];
-    return { success: true, duplicate: true, data: rowToRecordFrom_(rowVals, map, existing.row) };
+    return { success: true, duplicate: true, data: readRowRecord_(existing) };
   }
 
   const map = locateRegister_();
   const sh = map.sheet;
-  const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
+  const maxCol = maxCol_(map);
   const row = new Array(maxCol);
   for (let i = 0; i < maxCol; i++) row[i] = '';
   row[map.nameCol] = name;
@@ -284,20 +365,35 @@ function handleRegister_(name, employeeNumber, company, size) {
   row[map.companyCol] = company;
   row[map.dateCol] = date;
   row[map.sizeCol] = size;
+  if (map.timeCol >= 0) row[map.timeCol] = time;
   sh.appendRow(row);
   const newRow = sh.getLastRow();
   setEmpCell_(sh, newRow, map.empCol + 1, employeeNumber);
+  if (map.timeCol >= 0) {
+    sh.getRange(newRow, map.timeCol + 1).setNumberFormat('@');
+    sh.getRange(newRow, map.timeCol + 1).setValue(time);
+  }
 
   writeConfig_({ date: date });
   return {
     success: true,
     duplicate: false,
-    data: { name: name, employeeNumber: employeeNumber, company: company, date: date, size: size, row: newRow, dateNumeric: today.numeric, dateWords: today.words },
+    data: {
+      name: name,
+      employeeNumber: employeeNumber,
+      company: company,
+      date: date,
+      time: time,
+      size: size,
+      row: newRow,
+      dateNumeric: today.numeric,
+      dateWords: today.words
+    },
     sheetName: sh.getName()
   };
 }
 
-function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNumber, sheetRow) {
+function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNumber, sheetRow, time) {
   employeeNumber = empStr_(employeeNumber);
   let found = null;
   if (sheetRow) found = findRowBySheetRow_(sheetRow);
@@ -323,12 +419,12 @@ function handleUpdate_(employeeNumber, name, company, date, size, newEmployeeNum
   if (company !== undefined && company !== null && String(company).length) sh.getRange(row, map.companyCol + 1).setValue(String(company).trim());
   if (date !== undefined && date !== null && String(date).length) sh.getRange(row, map.dateCol + 1).setValue(String(date).trim());
   if (size !== undefined && size !== null && String(size).length) sh.getRange(row, map.sizeCol + 1).setValue(String(size).trim().toUpperCase());
+  if (time !== undefined && time !== null && String(time).length && map.timeCol >= 0) {
+    sh.getRange(row, map.timeCol + 1).setNumberFormat('@');
+    sh.getRange(row, map.timeCol + 1).setValue(formatTimeCell_(time));
+  }
 
-  const maxCol = Math.max(map.nameCol, map.empCol, map.companyCol, map.dateCol, map.sizeCol) + 1;
-  const rowVals = sh.getRange(row, 1, 1, maxCol).getValues()[0];
-  const displays = sh.getRange(row, 1, 1, maxCol).getDisplayValues()[0];
-  rowVals[map.empCol] = displays[map.empCol];
-  return { success: true, data: rowToRecordFrom_(rowVals, map, row) };
+  return { success: true, data: readRowRecord_(found) };
 }
 
 function handleDelete_(employeeNumber, sheetRow) {
@@ -348,16 +444,21 @@ function doGet(e) {
 
     if (action === 'ping' || action === 'health') {
       const loc = locateRegister_();
+      ensureAccessSheet_();
       return jsonOut_({
         success: true,
         ok: true,
-        time: todayParts_().display,
+        time: todayParts_().stamp,
         sheetName: loc.sheet.getName(),
+        accessSheet: ACCESS_SHEET,
         recordCount: loc.count
       });
     }
     if (action === 'config') {
       return jsonOut_({ success: true, data: readConfig_() });
+    }
+    if (action === 'verifypin') {
+      return jsonOut_(verifyPin_(p.pin));
     }
     if (action === 'list') {
       const loc = locateRegister_();
@@ -378,7 +479,7 @@ function doGet(e) {
       return jsonOut_(handleRegister_(p.name, p.employeeNumber, p.company, p.size));
     }
     if (action === 'update') {
-      return jsonOut_(handleUpdate_(p.employeeNumber, p.name, p.company, p.date, p.size, p.newEmployeeNumber, p.row));
+      return jsonOut_(handleUpdate_(p.employeeNumber, p.name, p.company, p.date, p.size, p.newEmployeeNumber, p.row, p.time));
     }
     if (action === 'delete') {
       return jsonOut_(handleDelete_(p.employeeNumber, p.row));
@@ -403,6 +504,9 @@ function doPost(e) {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const action = String(body.action || '').toLowerCase();
 
+    if (action === 'verifypin') {
+      return jsonOut_(verifyPin_(body.pin));
+    }
     if (action === 'setconfig') {
       const today = todayParts_();
       const data = writeConfig_({
@@ -416,7 +520,7 @@ function doPost(e) {
       return jsonOut_(handleRegister_(body.name, body.employeeNumber, body.company, body.size));
     }
     if (action === 'update') {
-      return jsonOut_(handleUpdate_(body.employeeNumber, body.name, body.company, body.date, body.size, body.newEmployeeNumber, body.row));
+      return jsonOut_(handleUpdate_(body.employeeNumber, body.name, body.company, body.date, body.size, body.newEmployeeNumber, body.row, body.time));
     }
     if (action === 'delete') {
       return jsonOut_(handleDelete_(body.employeeNumber, body.row));

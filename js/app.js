@@ -9,9 +9,9 @@
  *  3. Session / banner / toast
  *  4. Tabs + Register form
  *  5. Find Me (local filter — fast after first list load)
- *  6. Moderator PIN (keyboard ONLY while Moderator tab + PIN gate open)
- *  7. Moderator sheet table (edit name/company/control no/date/size)
- *  8. Boot
+ *  6. Moderator PIN (checked against Access sheet B1 — never hardcoded here)
+ *  7. Moderator sheet table (edit name/company/control no/date/time/size)
+ *  8. Size charts + boot
  *
  * IMPORTANT FIX: PIN digit capture must NOT run on Register / Find Me,
  * otherwise typing a control number steals keys for the PIN.
@@ -101,6 +101,17 @@ function dateSortKey(value){
   const mo = MONTHS.findIndex(x => x.toLowerCase() === m[2].toLowerCase());
   if (mo < 0) return 0;
   return Date.UTC(Number(m[3]), mo, Number(m[1]));
+}
+
+function timeSortKey(value){
+  const m = String(value || "").trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return 0;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+function formatTimeDisplay(t){
+  const s = String(t || "").trim();
+  return s || "";
 }
 
 /** Unique training dates from roster, newest first */
@@ -490,7 +501,7 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
       try {
         await apiCall({ action: "update", employeeNumber: empRaw, date: stamped, row: r.data && r.data.row ? String(r.data.row) : "" });
       } catch (e) {}
-      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b><br>A moderator will assign your respirator size.</div></div></div>`;
+      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b>${r.data && r.data.time ? ` · Time: <b>${esc(r.data.time)}</b>` : ""}<br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regInitials").value = "";
       document.getElementById("regSurname").value = "";
       document.getElementById("regEmp").value = "";
@@ -525,7 +536,7 @@ async function doFind(){
       <div class="entry">
         <div>
           <div class="name">${esc(rr.name)}</div>
-          <div class="meta">${esc(rr.company)} · Control ••${esc(String(rr.employeeNumber).slice(-4))}<br>${esc(toSheetDate(rr.date) || "Date pending")}</div>
+          <div class="meta">${esc(rr.company)} · Control ••${esc(String(rr.employeeNumber).slice(-4))}<br>${esc(toSheetDate(rr.date) || "Date pending")}${rr.time ? ` · ${esc(rr.time)}` : ""}</div>
         </div>
         ${sizeBadge(rr.size)}
       </div>
@@ -542,36 +553,58 @@ document.getElementById("findInput").addEventListener("input", () => {
 document.getElementById("findInput").addEventListener("keydown", e => { if (e.key === "Enter") doFind(); });
 
 function renderPinDots(){
-  document.querySelectorAll("#pinDots .dot").forEach((d, i) => {
-    d.classList.toggle("filled", i < pinBuffer.length);
-  });
+  const wrap = document.getElementById("pinDots");
+  if (wrap) {
+    const n = Math.max(4, Math.min(8, pinBuffer.length || 4));
+    wrap.innerHTML = Array.from({ length: n }, (_, i) =>
+      `<div class="dot${i < pinBuffer.length ? " filled" : ""}"></div>`
+    ).join("");
+  }
   const pinType = document.getElementById("pinType");
   if (pinType && document.activeElement !== pinType) pinType.value = pinBuffer;
 }
 
-function tryUnlockPin(){
-  if (pinBuffer.length !== 4 || pinUnlocked) return;
-  if (pinBuffer === MOD_PIN) {
-    pinUnlocked = true;
-    document.getElementById("pinGate").style.display = "none";
-    document.getElementById("modDashboard").style.display = "block";
-    startSheetSync();
-    loadModDashboard();
-  } else {
-    toast("Incorrect PIN");
-    pinBuffer = "";
-    renderPinDots();
+let pinBusy = false;
+async function tryUnlockPin(){
+  if (pinUnlocked || pinBusy) return;
+  const pin = (pinBuffer || document.getElementById("pinType").value || "").trim();
+  if (pin.length < 4) {
+    toast("Enter the moderator PIN");
+    return;
   }
+  pinBusy = true;
+  const btn = document.getElementById("pinUnlockBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Checking…"; }
+  try {
+    const r = await apiCall({ action: "verifypin", pin });
+    if (r.success && r.ok) {
+      pinUnlocked = true;
+      document.getElementById("pinGate").style.display = "none";
+      document.getElementById("modDashboard").style.display = "block";
+      startSheetSync();
+      loadModDashboard();
+      toast("Moderator unlocked");
+    } else {
+      toast("Incorrect PIN");
+      pinBuffer = "";
+      renderPinDots();
+      const pinType = document.getElementById("pinType");
+      if (pinType) pinType.value = "";
+    }
+  } catch (e) {
+    toast("Could not verify PIN — check Apps Script deploy");
+  }
+  pinBusy = false;
+  if (btn) { btn.disabled = false; btn.textContent = "Unlock"; }
 }
 
 function handlePinKey(k){
   if (pinUnlocked) return;
   if (k === "clear") pinBuffer = "";
   else if (k === "back") pinBuffer = pinBuffer.slice(0, -1);
-  else if (/^\d$/.test(k) && pinBuffer.length < 4) pinBuffer += k;
+  else if (/^\d$/.test(k) && pinBuffer.length < 12) pinBuffer += k;
   else return;
   renderPinDots();
-  if (pinBuffer.length === 4) setTimeout(tryUnlockPin, 80);
 }
 
 document.getElementById("pinPad").addEventListener("click", e => {
@@ -581,12 +614,18 @@ document.getElementById("pinPad").addEventListener("click", e => {
 });
 
 document.getElementById("pinType").addEventListener("input", e => {
-  const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+  const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
   pinBuffer = digits;
   e.target.value = digits;
   renderPinDots();
-  if (pinBuffer.length === 4) setTimeout(tryUnlockPin, 80);
 });
+document.getElementById("pinType").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    tryUnlockPin();
+  }
+});
+document.getElementById("pinUnlockBtn").addEventListener("click", tryUnlockPin);
 
 /**
  * PIN keyboard capture — ONLY when Moderator tab is active AND PIN gate is showing.
@@ -608,6 +647,7 @@ document.addEventListener("keydown", e => {
     (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT" || ae.isContentEditable);
   if (typingElsewhere) return;
 
+  if (e.key === "Enter") { e.preventDefault(); tryUnlockPin(); return; }
   if (e.key >= "0" && e.key <= "9") { e.preventDefault(); handlePinKey(e.key); }
   else if (e.key === "Backspace") { e.preventDefault(); handlePinKey("back"); }
   else if (e.key === "Escape" || e.key === "Delete") { e.preventDefault(); handlePinKey("clear"); }
@@ -629,22 +669,54 @@ function filteredRecords(){
     const company = (r.company || "").toLowerCase();
     return name.includes(q) || company.includes(q) || emp.includes(q) || emp.slice(-4) === q;
   });
-  // Sort by training date (newest first), then name
+  // Sort by training date then time (newest first), then name
   list.sort((a, b) => {
     const dk = dateSortKey(b.date) - dateSortKey(a.date);
     if (dk !== 0) return dk;
+    const tk = timeSortKey(b.time) - timeSortKey(a.time);
+    if (tk !== 0) return tk;
     return String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" });
   });
   return list;
 }
 
+function scopeRecords(){
+  return modDateFilter
+    ? cachedRecords.filter(r => toSheetDate(r.date) === modDateFilter)
+    : cachedRecords;
+}
+
+function renderSizeCharts(scope){
+  const el = document.getElementById("sizeCharts");
+  if (!el) return;
+  const counts = { S: 0, M: 0, L: 0, Pending: 0 };
+  (scope || []).forEach(r => {
+    const s = String(r.size || "").trim().toUpperCase();
+    if (s === "S" || s === "M" || s === "L") counts[s]++;
+    else counts.Pending++;
+  });
+  const total = Math.max(1, (scope || []).length);
+  const rows = [
+    { lab: "Small", key: "S", n: counts.S },
+    { lab: "Medium", key: "M", n: counts.M },
+    { lab: "Large", key: "L", n: counts.L },
+    { lab: "Pending", key: "Pending", n: counts.Pending, pending: true }
+  ];
+  el.innerHTML = `<div class="chart-list">${rows.map(r => {
+    const pct = Math.round((r.n / total) * 100);
+    return `<div class="chart-row">
+      <div class="lab">${r.lab}</div>
+      <div class="track"><div class="fill${r.pending ? " pending" : ""}" style="width:${pct}%"></div></div>
+      <div class="n">${r.n}</div>
+    </div>`;
+  }).join("")}</div>
+  <div class="hint" style="margin-top:10px;">${(scope || []).length} people in this view · S ${counts.S} · M ${counts.M} · L ${counts.L} · pending ${counts.Pending}</div>`;
+}
+
 function renderModList(){
   const listEl = document.getElementById("modList");
   const records = filteredRecords();
-  // Stats reflect the current day filter (All days = full roster)
-  const scope = modDateFilter
-    ? cachedRecords.filter(r => toSheetDate(r.date) === modDateFilter)
-    : cachedRecords;
+  const scope = scopeRecords();
   const pending = scope.filter(r => !hasSize(r)).length;
   const sized = scope.length - pending;
   document.getElementById("statTotal").textContent = scope.length;
@@ -652,6 +724,7 @@ function renderModList(){
   document.getElementById("statSized").textContent = sized;
   updateModDateHint();
   renderDupBanner(cachedRecords);
+  renderSizeCharts(scope);
 
   const dupCounts = duplicateControlCounts(cachedRecords);
 
@@ -667,7 +740,8 @@ function renderModList(){
         <th class="col-name">Attendee Name and Surname</th>
         <th class="col-emp">Control No / ID</th>
         <th class="col-co">Company</th>
-        <th class="col-date">Date of Training</th>
+        <th class="col-date">Date</th>
+        <th class="col-time">Time</th>
         <th class="col-size">Size</th>
         <th class="col-act">Actions</th>
       </tr>
@@ -678,12 +752,14 @@ function renderModList(){
         const size = (r.size || "").toString().toUpperCase();
         const isDup = (dupCounts[emp] || 0) > 1;
         const rowId = r.row || "";
+        const time = formatTimeDisplay(r.time);
         return `
         <tr data-emp="${esc(emp)}" data-row="${esc(String(rowId))}" class="${isDup ? "dup-row" : ""}">
           <td class="col-name"><input type="text" class="edit-name" value="${esc(r.name)}">${isDup ? `<span class="dup-tag">Duplicate</span>` : ""}</td>
           <td class="col-emp"><input type="text" class="edit-emp" value="${esc(emp)}" inputmode="text" autocomplete="off"></td>
           <td class="col-co"><input type="text" class="edit-company" value="${esc(r.company)}"></td>
           <td class="col-date"><input type="text" class="edit-date" value="${esc(toSheetDate(r.date) || "")}" placeholder="${esc(sessionSheetDate())}"></td>
+          <td class="col-time"><input type="text" class="edit-time" value="${esc(time)}" placeholder="HH:mm" inputmode="numeric"></td>
           <td class="col-size">
             <select class="edit-size">
               <option value="" ${!size ? "selected" : ""}>—</option>
@@ -725,6 +801,7 @@ function renderModList(){
       const company = rowEl.querySelector(".edit-company").value.trim();
       const newEmp = controlKey(rowEl.querySelector(".edit-emp").value);
       const date = toSheetDate(rowEl.querySelector(".edit-date").value.trim());
+      const time = formatTimeDisplay(rowEl.querySelector(".edit-time").value.trim());
       const size = rowEl.querySelector(".edit-size").value;
       if (!name || !company) { toast("Name and company required"); return; }
       if (!newEmp) { toast("Control number / ID required"); return; }
@@ -740,6 +817,7 @@ function renderModList(){
         if (sheetRow) payload.row = sheetRow;
         if (newEmp !== emp) payload.newEmployeeNumber = newEmp;
         if (date) payload.date = date;
+        if (time) payload.time = time;
         if (size) payload.size = size;
         const r = await apiCall(payload);
         if (!r.success) { toast(r.error || "Update failed"); return; }
@@ -756,7 +834,6 @@ function renderModList(){
         const r = await apiCall(payload);
         if (!r.success) { toast(r.error || "Delete failed"); return; }
         toast("Deleted from sheet");
-        // Always re-pull so list / row numbers / duplicates match the spreadsheet
         await reloadFromSheet({ silent: true });
       } catch (err) { toast("Connection error"); }
     });
@@ -814,9 +891,9 @@ document.querySelectorAll(".filt").forEach(btn => {
 document.getElementById("exportBtn").addEventListener("click", () => {
   readDateFromInputs();
   const fallback = sessionSheetDate();
-  const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
+  const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Time Signed In","Respirator Size Required (S/M/L)"]];
   // Export what the moderator is currently looking at (day + size filters + search)
-  filteredRecords().forEach(r => rows.push([r.name, r.employeeNumber, r.company, toSheetDate(r.date) || fallback, r.size || ""]));
+  filteredRecords().forEach(r => rows.push([r.name, r.employeeNumber, r.company, toSheetDate(r.date) || fallback, r.time || "", r.size || ""]));
   const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
