@@ -465,25 +465,21 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
     return;
   }
 
+  // Instant local duplicate check only (no network). Server still blocks duplicates.
+  const localHit = rosterCache.find(r => controlKey(r.employeeNumber) === empRaw);
+  if (localHit) {
+    const sized = hasSize(localHit) ? `Size on file: <b>${esc(localHit.size)}</b>.` : `Size still pending assignment.`;
+    resultDiv.innerHTML = `<div class="result warn"><div class="mark">!</div><div><div class="rtitle">Already on the register</div><div class="rbody">Control number / ID <b>${esc(empRaw)}</b> belongs to <b>${esc(localHit.name)}</b>. ${sized}<br>Duplicates are not allowed.</div></div></div>`;
+    return;
+  }
+
   const submitBtn = document.getElementById("submitBtn");
   submitBtn.disabled = true;
   submitBtn.textContent = "Submitting…";
   resultDiv.innerHTML = `<div class="spinner"></div>`;
 
   try {
-    // Fresh roster check so we catch duplicates even if cache was stale
-    try {
-      const list = await ensureRoster(true);
-      const hit = list.find(r => controlKey(r.employeeNumber) === empRaw);
-      if (hit) {
-        const sized = hasSize(hit) ? `Size on file: <b>${esc(hit.size)}</b>.` : `Size still pending assignment.`;
-        resultDiv.innerHTML = `<div class="result warn"><div class="mark">!</div><div><div class="rtitle">Already on the register</div><div class="rbody">Control number / ID <b>${esc(empRaw)}</b> belongs to <b>${esc(hit.name)}</b>. ${sized}<br>Duplicates are not allowed.</div></div></div>`;
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Sign Me In";
-        return;
-      }
-    } catch (e) { /* server will still enforce */ }
-
+    // ONE network call — date + time stamped by Apps Script
     const r = await apiCall({
       action: "register",
       name,
@@ -496,18 +492,25 @@ document.getElementById("regForm").addEventListener("submit", async (ev) => {
     } else if (r.duplicate) {
       const sized = hasSize(r.data) ? `Size on file: <b>${esc(r.data.size)}</b>.` : `Size still pending assignment.`;
       resultDiv.innerHTML = `<div class="result warn"><div class="mark">!</div><div><div class="rtitle">Already signed in</div><div class="rbody">Control number / ID <b>${esc(empRaw)}</b> is already used by <b>${esc(r.data.name)}</b>. ${sized}</div></div></div>`;
+      if (r.data) {
+        rosterCache = rosterCache.filter(x => controlKey(x.employeeNumber) !== empRaw).concat([r.data]);
+        rosterLoadedAt = Date.now();
+      }
     } else {
-      const stamped = sessionSheetDate() || todayWords;
-      try {
-        await apiCall({ action: "update", employeeNumber: empRaw, date: stamped, row: r.data && r.data.row ? String(r.data.row) : "" });
-      } catch (e) {}
-      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b>${r.data && r.data.time ? ` · Time: <b>${esc(r.data.time)}</b>` : ""}<br>A moderator will assign your respirator size.</div></div></div>`;
+      const stamped = (r.data && r.data.date) || sessionSheetDate() || todayWords;
+      const signedTime = (r.data && r.data.time) || "";
+      resultDiv.innerHTML = `<div class="result ok"><div class="mark">✓</div><div><div class="rtitle">You're signed in</div><div class="rbody"><b>${esc(name)}</b> · ${esc(company)}<br>Date: <b>${esc(stamped)}</b>${signedTime ? ` · Time: <b>${esc(signedTime)}</b>` : ""}<br>A moderator will assign your respirator size.</div></div></div>`;
       document.getElementById("regInitials").value = "";
       document.getElementById("regSurname").value = "";
       document.getElementById("regEmp").value = "";
       document.getElementById("regCompany").value = "";
-      await reloadFromSheet({ silent: true });
-      toast("Saved to spreadsheet");
+      // Optimistic local cache — no second sheet round-trip (keeps queue fast for 100+ people)
+      const rec = r.data || { name, employeeNumber: empRaw, company, date: stamped, time: signedTime, size: "" };
+      rosterCache.push(rec);
+      if (pinUnlocked) cachedRecords = rosterCache.slice();
+      rosterLoadedAt = Date.now();
+      toast("Saved");
+      document.getElementById("regInitials").focus();
     }
   } catch (e) {
     resultDiv.innerHTML = `<div class="result err"><div class="mark">!</div><div><div class="rtitle">Connection error</div><div class="rbody">${esc(e.message || "Check internet / redeploy Apps Script.")}</div></div></div>`;
@@ -523,10 +526,9 @@ async function doFind(){
     out.innerHTML = `<div class="empty">Enter exactly 4 digits</div>`;
     return;
   }
-  out.innerHTML = '<div class="spinner"></div>';
   try {
-    // Always refresh so deletes / sheet edits show without a hard page reload
-    const list = await ensureRoster(true);
+    // Use cache when fresh — force refresh only if empty/stale
+    const list = await ensureRoster(false);
     const records = findByLast4(digits, list);
     if (records.length === 0) {
       out.innerHTML = `<div class="empty">No match found. Use Register if you haven't signed in yet.</div>`;
@@ -546,9 +548,11 @@ async function doFind(){
   }
 }
 document.getElementById("findBtn").addEventListener("click", doFind);
+let findTimer = null;
 document.getElementById("findInput").addEventListener("input", () => {
   const digits = document.getElementById("findInput").value.trim();
-  if (digits.length === 4) doFind();
+  clearTimeout(findTimer);
+  if (digits.length === 4) findTimer = setTimeout(doFind, 200);
 });
 document.getElementById("findInput").addEventListener("keydown", e => { if (e.key === "Enter") doFind(); });
 
@@ -582,8 +586,9 @@ async function tryUnlockPin(){
       document.getElementById("pinGate").style.display = "none";
       document.getElementById("modDashboard").style.display = "block";
       startSheetSync();
-      loadModDashboard();
       toast("Moderator unlocked");
+      // Load sheet in background — don't block unlock
+      loadModDashboard();
     } else {
       toast("Incorrect PIN");
       pinBuffer = "";

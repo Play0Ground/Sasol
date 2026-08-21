@@ -10,5 +10,5 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxp2RyVJLAgsi13190nIHNk4C8WJThjEVbBmAL1uBOtGav1z_20cnbyaVfHtANwdfzMCw/exec";
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const SESSION_KEY = "sasol_session_v1";
-const ROSTER_TTL_MS = 15 * 1000;
-const SYNC_POLL_MS = 20 * 1000;
+const ROSTER_TTL_MS = 45 * 1000;  // reuse roster so Find Me / dup checks stay fast
+const SYNC_POLL_MS = 60 * 1000;   // moderator background sync (Refresh still forces now)

@@ -99,8 +99,13 @@ function ensureAccessSheet_() {
 }
 
 function readModeratorPin_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('mod_pin');
+  if (cached !== null && cached !== undefined) return cached;
   const sh = ensureAccessSheet_();
-  return String(sh.getRange('B1').getDisplayValue() || '').trim();
+  const pin = String(sh.getRange('B1').getDisplayValue() || '').trim();
+  cache.put('mod_pin', pin, 300); // 5 min — change Access!B1 then wait, or redeploy clears
+  return pin;
 }
 
 function verifyPin_(pin) {
@@ -111,11 +116,57 @@ function verifyPin_(pin) {
   return { success: true, ok: got === expected };
 }
 
+function cacheKeyLocate_() { return 'reg_locate_v2'; }
+
+function readLocateCache_() {
+  try {
+    const raw = CacheService.getScriptCache().get(cacheKeyLocate_());
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+function writeLocateCache_(map) {
+  try {
+    CacheService.getScriptCache().put(cacheKeyLocate_(), JSON.stringify({
+      sheetName: map.sheet.getName(),
+      headerRow: map.headerRow,
+      nameCol: map.nameCol,
+      empCol: map.empCol,
+      companyCol: map.companyCol,
+      dateCol: map.dateCol,
+      sizeCol: map.sizeCol,
+      timeCol: map.timeCol
+    }), 600); // 10 min
+  } catch (e) {}
+}
+
+function locateFromCache_() {
+  const c = readLocateCache_();
+  if (!c) return null;
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(c.sheetName);
+  if (!sh) return null;
+  return {
+    sheet: sh,
+    headerRow: c.headerRow,
+    nameCol: c.nameCol,
+    empCol: c.empCol,
+    companyCol: c.companyCol,
+    dateCol: c.dateCol,
+    sizeCol: c.sizeCol,
+    timeCol: c.timeCol,
+    count: 0
+  };
+}
+
 /**
  * Find the register sheet + header row by looking for Name + Control Number headers.
- * Ensures a "Time Signed In" column exists.
+ * Ensures a "Time Signed In" column exists. Result cached ~10 min for speed.
  */
 function locateRegister_() {
+  const cached = locateFromCache_();
+  if (cached && cached.timeCol >= 0) return cached;
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheets = ss.getSheets();
   let best = null;
@@ -206,6 +257,7 @@ function locateRegister_() {
   }
 
   ensureTimeColumn_(best);
+  writeLocateCache_(best);
   return best;
 }
 
@@ -374,7 +426,7 @@ function handleRegister_(name, employeeNumber, company, size) {
     sh.getRange(newRow, map.timeCol + 1).setValue(time);
   }
 
-  writeConfig_({ date: date });
+  // Skip Config write on every register — keeps queue fast for 100+ people
   return {
     success: true,
     duplicate: false,
