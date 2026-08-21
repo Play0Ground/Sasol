@@ -27,7 +27,60 @@ let cachedRecords = [];
 let rosterCache = []; // fast local Find Me (no Apps Script search round-trip)
 let rosterLoadedAt = 0;
 let modFilter = "all";
+let modDateFilter = ""; // "" = all days; otherwise "11 August 2026"
 let rosterPromise = null;
+
+/** Sort key for training date (newest first). Unknown/blank dates go last. */
+function dateSortKey(value){
+  const words = toSheetDate(value);
+  const m = String(words || "").match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (!m) return 0;
+  const mo = MONTHS.findIndex(x => x.toLowerCase() === m[2].toLowerCase());
+  if (mo < 0) return 0;
+  return Date.UTC(Number(m[3]), mo, Number(m[1]));
+}
+
+/** Unique training dates from roster, newest first */
+function uniqueTrainingDates(list){
+  const seen = new Set();
+  const dates = [];
+  (list || []).forEach(r => {
+    const d = toSheetDate(r.date);
+    if (!d || seen.has(d)) return;
+    seen.add(d);
+    dates.push(d);
+  });
+  dates.sort((a, b) => dateSortKey(b) - dateSortKey(a));
+  return dates;
+}
+
+function fillModDateFilter(){
+  const sel = document.getElementById("modDateFilter");
+  if (!sel) return;
+  const dates = uniqueTrainingDates(cachedRecords);
+  const prev = modDateFilter;
+  sel.innerHTML = `<option value="">All days</option>` +
+    dates.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+  if (prev && dates.includes(prev)) {
+    sel.value = prev;
+    modDateFilter = prev;
+  } else {
+    sel.value = "";
+    modDateFilter = "";
+  }
+  updateModDateHint();
+}
+
+function updateModDateHint(){
+  const hint = document.getElementById("modDateHint");
+  if (!hint) return;
+  if (!modDateFilter) {
+    hint.textContent = "Showing all days (newest first). Pick a day to narrow the list.";
+  } else {
+    const n = filteredRecords().length;
+    hint.textContent = `Showing ${n} attendee${n === 1 ? "" : "s"} for ${modDateFilter}. Search only looks inside this day.`;
+  }
+}
 
 function pad2(n){ return String(n).padStart(2,"0"); }
 
@@ -486,7 +539,12 @@ document.addEventListener("keydown", e => {
 
 function filteredRecords(){
   const q = document.getElementById("modSearch").value.trim().toLowerCase();
-  return cachedRecords.filter(r => {
+  const day = modDateFilter;
+  const list = cachedRecords.filter(r => {
+    if (day) {
+      const rd = toSheetDate(r.date);
+      if (rd !== day) return false;
+    }
     if (modFilter === "pending" && hasSize(r)) return false;
     if (modFilter === "sized" && !hasSize(r)) return false;
     if (!q) return true;
@@ -495,19 +553,31 @@ function filteredRecords(){
     const company = (r.company || "").toLowerCase();
     return name.includes(q) || company.includes(q) || emp.includes(q) || emp.slice(-4) === q;
   });
+  // Sort by training date (newest first), then name
+  list.sort((a, b) => {
+    const dk = dateSortKey(b.date) - dateSortKey(a.date);
+    if (dk !== 0) return dk;
+    return String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" });
+  });
+  return list;
 }
 
 function renderModList(){
   const listEl = document.getElementById("modList");
   const records = filteredRecords();
-  const pending = cachedRecords.filter(r => !hasSize(r)).length;
-  const sized = cachedRecords.length - pending;
-  document.getElementById("statTotal").textContent = cachedRecords.length;
+  // Stats reflect the current day filter (All days = full roster)
+  const scope = modDateFilter
+    ? cachedRecords.filter(r => toSheetDate(r.date) === modDateFilter)
+    : cachedRecords;
+  const pending = scope.filter(r => !hasSize(r)).length;
+  const sized = scope.length - pending;
+  document.getElementById("statTotal").textContent = scope.length;
   document.getElementById("statPending").textContent = pending;
   document.getElementById("statSized").textContent = sized;
+  updateModDateHint();
 
   if (records.length === 0) {
-    listEl.innerHTML = `<div class="empty">No matching attendees</div>`;
+    listEl.innerHTML = `<div class="empty">${modDateFilter ? "No attendees for this day" : "No matching attendees"}</div>`;
     return;
   }
 
@@ -595,6 +665,7 @@ function renderModList(){
         }
         rosterCache = cachedRecords.slice();
         toast("Row saved to sheet");
+        fillModDateFilter();
         renderModList();
       } catch (err) { toast("Connection error"); }
     });
@@ -607,6 +678,7 @@ function renderModList(){
         cachedRecords = cachedRecords.filter(x => String(x.employeeNumber) !== emp);
         rosterCache = cachedRecords.slice();
         toast("Deleted from sheet");
+        fillModDateFilter();
         renderModList();
       } catch (err) { toast("Connection error"); }
     });
@@ -622,11 +694,36 @@ async function loadModDashboard(){
     cachedRecords = [];
     toast("Could not load sheet data");
   }
+  fillModDateFilter();
   renderModList();
 }
 
 document.getElementById("refreshBtn").addEventListener("click", loadModDashboard);
 document.getElementById("modSearch").addEventListener("input", renderModList);
+document.getElementById("modDateFilter").addEventListener("change", () => {
+  modDateFilter = document.getElementById("modDateFilter").value;
+  renderModList();
+});
+document.getElementById("modDateTodayBtn").addEventListener("click", () => {
+  computeToday();
+  const today = todayWords;
+  const sel = document.getElementById("modDateFilter");
+  // Prefer today's label if it exists in the list; otherwise still filter to today
+  if (![...sel.options].some(o => o.value === today)) {
+    const opt = document.createElement("option");
+    opt.value = today;
+    opt.textContent = today + " (no rows yet)";
+    sel.appendChild(opt);
+  }
+  sel.value = today;
+  modDateFilter = today;
+  renderModList();
+});
+document.getElementById("modDateClearBtn").addEventListener("click", () => {
+  document.getElementById("modDateFilter").value = "";
+  modDateFilter = "";
+  renderModList();
+});
 document.querySelectorAll(".filt").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".filt").forEach(b => b.classList.remove("on"));
@@ -640,16 +737,18 @@ document.getElementById("exportBtn").addEventListener("click", () => {
   readDateFromInputs();
   const fallback = sessionSheetDate();
   const rows = [["Attendee Name and Surname","Sasol Control Number","Company","Date of Training","Respirator Size Required (S/M/L)"]];
-  cachedRecords.forEach(r => rows.push([r.name, r.employeeNumber, r.company, toSheetDate(r.date) || fallback, r.size || ""]));
+  // Export what the moderator is currently looking at (day + size filters + search)
+  filteredRecords().forEach(r => rows.push([r.name, r.employeeNumber, r.company, toSheetDate(r.date) || fallback, r.size || ""]));
   const csv = rows.map(row => row.map(cell => `"${(cell||"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `respirator-fitment-attendance-${fallback.replace(/\s+/g,"-")}.csv`;
+  const stamp = (modDateFilter || fallback).replace(/\s+/g, "-");
+  a.download = `respirator-fitment-attendance-${stamp}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  toast("CSV downloaded");
+  toast(modDateFilter ? `CSV for ${modDateFilter}` : "CSV downloaded");
 });
 
 document.getElementById("genQrBtn").addEventListener("click", () => {

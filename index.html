@@ -163,6 +163,17 @@
               <div class="stat"><div class="num" id="statPending">0</div><div class="lbl">No Size</div></div>
               <div class="stat"><div class="num" id="statSized">0</div><div class="lbl">Sized</div></div>
             </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Show by training date</label>
+              <div class="date-filter-row">
+                <select id="modDateFilter" aria-label="Filter by training date">
+                  <option value="">All days</option>
+                </select>
+                <button type="button" class="btn btn-ghost btn-small" id="modDateTodayBtn">Today</button>
+                <button type="button" class="btn btn-ghost btn-small" id="modDateClearBtn">All days</button>
+              </div>
+              <div class="hint" id="modDateHint">Pick a day to only see / search that session’s register.</div>
+            </div>
             <label>Quick find (name or last 4) — then assign size</label>
             <div class="search-row" style="margin-bottom:12px;">
               <input type="text" id="modSearch" placeholder="Dlamini or 6781" autocomplete="off">

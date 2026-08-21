@@ -294,6 +294,15 @@
     font-size: .72rem; font-weight: 800; cursor: pointer; font-family: inherit;
   }
   .mini-size.on { background: rgba(240,180,41,.16); border-color: var(--safety); color: var(--safety); }
+  .date-filter-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+  .date-filter-row select {
+    flex: 1; min-width: 160px;
+    background: rgba(0,0,0,.28); border: 1px solid var(--line);
+    color: var(--text); padding: 12px 14px; border-radius: 14px;
+    font-size: 15px; font-family: inherit;
+  }
+  .date-filter-row select:focus { outline: none; border-color: var(--safety); }
+  .date-filter-row .btn { width: auto; margin-top: 0; padding: 0 14px; white-space: nowrap; }
   .filter-chips { display: flex; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
   .filter-chips button {
     border: 1px solid var(--line); background: rgba(0,0,0,.22); color: var(--soft);
